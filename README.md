@@ -1,2 +1,2 @@
-# Space Conquest (Space Game)
-2D top-down pixel-art space game: fly the galaxy, discover planets on the minimap, land, conquer them by destroying enemy cores, earn credits and buy better ships. Single static `index.html`, no build step, deploy on Vercel.
+# Space Conquest (Space Game) — RTS
+2D top-down pixel-art space RTS. Fly your command ship across the galaxy, discover planets, invade them with an army of units (marines, tanks, flak walkers, gunships, artillery, repair drones) and destroy enemy cores. Rock-paper-scissors counters, procedural planets/biomes, credits, Command Center shop, localStorage save. Single static `index.html`, no build step, deployed on Vercel.
