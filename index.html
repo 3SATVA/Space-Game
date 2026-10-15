@@ -76,6 +76,13 @@ table.ct{border-collapse:collapse;font-size:8px;margin:6px auto}table.ct th,tabl
 .ic{display:inline-flex;align-items:center;gap:3px;margin:0 3px}.ic canvas{width:20px;height:20px;image-rendering:pixelated;box-shadow:0 0 0 2px #000}
 #dpter{display:flex;flex-wrap:wrap;gap:4px;justify-content:center;font-size:8px}
 .dr .inf{font-size:8px}.legend{display:grid;grid-template-columns:auto 1fr;gap:4px 8px;font-size:8px;text-align:left;max-width:520px;align-items:center}
+.tree{position:relative;margin:0 auto}.tree svg{position:absolute;left:0;top:0}
+.tn{position:absolute;width:72px;height:50px;background:#141033;box-shadow:0 0 0 2px #000,0 0 0 4px #3b3280;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;cursor:pointer;font-size:6px}
+.tn canvas{width:24px;height:24px;image-rendering:pixelated;object-fit:contain}.tn .tl{font-size:6px;line-height:1.1;text-align:center}
+.tn.lock{opacity:.45}.tn.lock canvas{filter:grayscale(1)}.tn.own{box-shadow:0 0 0 2px #000,0 0 0 4px #4ade80}.tn.done{box-shadow:0 0 0 2px #000,0 0 0 4px #ffd75e}.tn.res{box-shadow:0 0 0 2px #000,0 0 0 4px #4cc9f0}.tn.avail{box-shadow:0 0 0 2px #000,0 0 0 4px #9b8cff}
+.tn.sel{outline:2px solid #fff;outline-offset:3px}.pb{width:56px;height:4px;background:#000}.pb i{display:block;height:100%;background:#4cc9f0}
+.tdet{font-size:8px;line-height:2;text-align:center;margin-top:8px}#tbtn{margin-top:4px;font-size:9px;padding:8px 14px}
+#hangar{overflow:auto;justify-content:flex-start}#ships{display:block}
 </style></head><body>
 <canvas id="c"></canvas>
 <div id="hud" style="display:none"><div id="cred"></div><div id="army"></div><div id="loc"></div><div id="obj"></div><div id="haz"></div></div>
@@ -83,19 +90,19 @@ table.ct{border-collapse:collapse;font-size:8px;margin:6px auto}table.ct th,tabl
 <button id="pbtn" style="display:none" title="Pause (Esc)">II</button>
 <button id="mbtn" style="display:none" title="Map (M)">MAP</button>
 <button id="prompt" class="gold"></button>
-<div id="panel"><div id="selinfo"></div><button id="ball">ALL</button><button id="bfol" class="on">FOLLOW</button><button id="bbox" class="touchonly">BOX</button><button id="bstop">STOP</button><button id="bret" class="red">RETREAT</button></div>
+<div id="panel"><div id="selinfo"></div><button id="ball">ALL</button><button id="bfol" class="on">FOLLOW</button><button id="bbox" class="touchonly">BOX</button><button id="bload" style="display:none">LOAD</button><button id="bunl" style="display:none">DROP</button><button id="bstop">STOP</button><button id="bret" class="red">RETREAT</button></div>
 <div id="toasts"></div><div id="banner"></div><div id="translbl"></div>
 <div id="menu" class="ov on">
  <h1>SPACE<br>CONQUEST</h1>
   <button id="bplay" class="gold">Play</button>
- <button id="bhang">Command Center</button>
+ <button id="bhang">Tech Tree</button>
  <button id="bhelp">How to play</button>
  <button id="breset" class="red">Reset save</button>
  <div class="small" id="msave"></div>
 </div>
 <div id="help" class="ov" style="overflow:auto;justify-content:flex-start">
  <h2>HOW TO PLAY</h2>
- <div class="small" style="max-width:560px;text-align:left;line-height:1.8">&#9654; Fly to a planet, INVADE. Draft units with 20 tokens. Destroy all enemy cores.<br>&#9654; Dock at the center Station to unlock unit types. Conquered planets pay CR/min.<br>&#9654; Mouse: drag-select, right-click move/attack. Q all, X stop, Ctrl+1-5 groups, WASD pan.<br>&#9654; Touch: tap unit, tap ground/enemy. ALL, BOX, drag to pan.<br>&#9654; Fog: you only see what your units see. Air sees farther. Firing reveals a unit.</div>
+ <div class="small" style="max-width:560px;text-align:left;line-height:1.8">&#9654; Fly to a planet, INVADE. Draft units with 20 tokens. Destroy all enemy cores.<br>&#9654; Dock at the center Station: research &amp; buy units (tech tree). Kills + conquests give 🔬 RP. Conquered planets pay CR/min.<br>&#9654; Mouse: drag-select, right-click move/attack. Q all, X stop, Ctrl+1-5 groups, WASD pan.<br>&#9654; Touch: tap unit, tap ground/enemy. ALL, BOX, drag to pan.<br>&#9654; Fog: you only see what your units see. Air sees farther. Firing reveals a unit.</div>
  <div id="tlegend" class="legend"></div>
  <div id="ctab"></div>
  <div class="small">LIGHT: Swarmer, Buzzsaw &middot; ARMOR: Brute, Walker, Flak Bot &middot; AIR: Flyer, Drone &middot; STRUCT: Turret, Core</div>
@@ -104,14 +111,14 @@ table.ct{border-collapse:collapse;font-size:8px;margin:6px auto}table.ct th,tabl
 <div id="pause" class="ov">
  <h2>PAUSED</h2>
  <button id="bres" class="gold">Resume</button>
- <button id="bphang">Command Center</button>
+ <button id="bphang">Tech Tree</button>
  <button id="bleave" class="red">Retreat</button>
  <button id="bmute">Sound: on</button>
  <button id="bmenu">Main menu</button>
 </div>
 <div id="hangar" class="ov">
- <h2>COMMAND CENTER</h2><div class="small" id="hcred"></div>
- <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center"><button id="bctr">Counter chart</button></div>
+ <h2>TECH TREE</h2><div class="small" id="hcred"></div>
+ <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center"><button id="bctr">Counters</button></div>
  <div id="ships"></div>
  <div id="ctab2" style="display:none"></div>
  <button id="bhx">Back</button>
@@ -155,21 +162,26 @@ const ESPR={
 };
 
 // ================= RTS DATA =================
-const MULT={small:{L:1.5,A:.5,R:.8,S:.4},cannon:{L:.7,A:1.5,R:0,S:1.4},flak:{L:.5,A:.4,R:2.5,S:.3},rocket:{L:.6,A:2,R:.6,S:1},siege:{L:.7,A:1,R:0,S:2.5}};
+const MULT={small:{L:1.5,A:.5,R:.8,S:.4},flame:{L:2.2,A:.5,R:0,S:.6},cannon:{L:.7,A:1.5,R:0,S:1.4},flak:{L:.5,A:.4,R:2.5,S:.3},rocket:{L:.6,A:2,R:.6,S:1},siege:{L:.7,A:1,R:0,S:2.5}};
 const ARM={L:['LIGHT','#9ef0ff'],A:['ARMOR','#ffb02e'],R:['AIR','#d8a4ff'],S:['STRUCT','#ff8a8a']};
-const DTN={small:'RIFLES',cannon:'CANNON',flak:'FLAK',rocket:'ROCKETS',siege:'SIEGE'};
-const DTEX={small:'Marines, Swarmers, Buzzsaws, Drones, Gun Turrets',cannon:'Tanks, Brutes, Walkers',flak:'Flak Walkers, Spitters, Flak Bots, Flak Turrets',rocket:'Gunships, Flyers',siege:'Artillery'};
+const DTN={flame:'FLAME',small:'RIFLES',cannon:'CANNON',flak:'FLAK',rocket:'ROCKETS',siege:'SIEGE'};
+const DTEX={flame:'Flame Troopers',small:'Marines, Swarmers, Buzzsaws, Drones, Gun Turrets',cannon:'Tanks, Brutes, Walkers',flak:'Flak Walkers, Spitters, Flak Bots, Flak Turrets',rocket:'Gunships, Flyers',siege:'Artillery'};
 const TP={k:'#4cc9f0',d:'#1d3557',w:'#e0fbfc',g:'#adb5bd',r:'#ef233c'};
 const UT={
- marine:{name:'Marine',arm:'L',hp:75,dt:'small',dmg:6,cd:.5,range:34,spd:36,r:3,tok:1,unlock:0,desc:'Cheap rifle squad. Shreds light units & swarms.',rows:['..g..','.kgk.','kkwkk','.kkk.','.k.k.','.d.d.']},
+ marine:{name:'Marine',arm:'L',hp:75,dt:'small',dmg:6,cd:.5,range:34,spd:36,r:3,tok:1,unlock:0,inf:1,desc:'Cheap rifle squad. Shreds light units & swarms.',rows:['..g..','.kgk.','kkwkk','.kkk.','.k.k.','.d.d.']},
+ atm:{name:'AT Marine',arm:'L',hp:70,dt:'rocket',dmg:16,cd:1.3,range:38,spd:33,r:3,tok:2,inf:1,desc:'Anti-tank rockets.',rows:['..g.g','.kgk.','kkwkk','.kkk.','.k.k.','.d.d.']},
+ scout:{name:'Scout Ship',arm:'R',hp:55,dt:'small',dmg:3,cd:.5,range:30,spd:70,r:3,tok:2,air:1,desc:'Fast eyes.',rows:['...w...','..kwk..','gkkkkkg','..kdk..','..d.d..']},
+ acar:{name:'Armored Car',arm:'A',hp:150,dt:'small',dmg:9,cd:.4,range:36,spd:46,r:4,tok:2,desc:'Fast MG car, hits air.',rows:['...g...','...g...','dkkkkkd','kkwwwkk','kkkkkkk','dkkkkkd','d.....d']},
+ flame:{name:'Flame Trooper',arm:'L',hp:90,dt:'flame',dmg:7,cd:.35,range:18,spd:34,r:3,tok:2,inf:1,splash:11,desc:'Burns swarms & forest.',rows:['..r..','.krk.','kkwkk','rkkk.','.k.k.','.d.d.']},
+ transport:{name:'Transport',arm:'R',hp:160,dt:null,range:0,spd:58,r:5,tok:3,air:1,cap:8,desc:'Carries 8 infantry.',rows:['....w....','...kwk...','gkkkkkkkg','.kkdkdkk.','.kkkkkkk.','..d...d..']},
  tank:{name:'Tank',arm:'A',hp:240,dt:'cannon',dmg:30,cd:1.4,range:44,spd:26,r:5,tok:3,unlock:0,desc:'Heavy armor. Crushes armor & bases. Cannot shoot air.',rows:['....g....','....g....','dd..g..dd','dkkkkkkkd','dkkwwwkkd','dkkwwwkkd','dkkkkkkkd','dkkkkkkkd','dd.....dd']},
  aa:{name:'Flak Walker',arm:'A',hp:150,dt:'flak',dmg:13,cd:.5,range:50,spd:29,r:4,tok:3,unlock:300,desc:'Anti-air walker. Deletes air units, weak vs ground.',rows:['.g.....g.','.g.....g.','.gkkkkkg.','..kwwwk..','..kkkkk..','.kk...kk.','.d.....d.','dd.....dd']},
  gunship:{name:'Gunship',arm:'R',hp:140,dt:'rocket',dmg:18,cd:.8,range:36,spd:50,r:5,tok:4,unlock:500,air:1,desc:'Flies over terrain. Rockets wreck tanks & armor.',rows:['.....w.....','....kwk....','....kkk....','g.kkkkkkk.g','gkkkkkkkkkg','...kkdkk...','....d.d....','...dd.dd...']},
  arty:{name:'Artillery',arm:'L',hp:70,dt:'siege',dmg:48,cd:2.8,range:64,minr:22,spd:21,r:4,tok:4,unlock:600,splash:13,desc:'Long-range siege vs turrets & cores. Fragile, min range.',rows:['....g....','....g....','....g....','...ggg...','.kkkkkkk.','dkkwkwkkd','dkkkkkkkd','dkkkkkkkd','dd.....dd']},
  medic:{name:'Repair Drone',arm:'R',hp:70,dt:null,heal:14,range:26,spd:46,r:3,tok:2,unlock:350,air:1,desc:'Flying repair drone. Heals nearby units.',rows:['..k.k..','.kkkkk.','kkwrwkk','kkrrrkk','kkwrwkk','.kkkkk.','..k.k..']},
 };
-const UKEYS=Object.keys(UT);const USPR={};for(const k of UKEYS)USPR[k]=mkSprite(UT[k].rows,TP);
-const VISR={marine:70,tank:64,aa:72,gunship:100,arty:60,medic:90,swarmer:70,brute:66,spitter:72,flyer:92,buzz:86,walker:72,flakbot:72,drone:92,turret:74,aaturret:74,core:64};
+const UKEYS=['marine','atm','scout','flame','acar','tank','aa','arty','transport','gunship','medic'];const USPR={};for(const k of UKEYS)USPR[k]=mkSprite(UT[k].rows,TP);
+const VISR={atm:68,scout:132,acar:76,flame:60,transport:96,marine:70,tank:64,aa:72,gunship:100,arty:60,medic:90,swarmer:70,brute:66,spitter:72,flyer:92,buzz:86,walker:72,flakbot:72,drone:92,turret:74,aaturret:74,core:64};
 const ET={
  swarmer:{name:'Swarmer',arm:'L',hp:40,dt:'small',dmg:5,cd:.6,range:10,spd:56,r:3,spr:'grunt'},
  brute:{name:'Brute',arm:'A',hp:260,dt:'cannon',dmg:24,cd:1.5,range:12,spd:30,r:6,spr:'brute'},
@@ -193,11 +205,20 @@ const canHit=(a,b)=>!!a.d.dt&&MULT[a.d.dt][b.d.arm]>0;
 // ================= SAVE =================
 const SKEY='spaceConquest.rts1';
 const TOKENS=20;
-function defSave(){return{credits:300,unlocked:['marine','tank'],comp:{marine:8,tank:4},conq:{},disc:{},px:0,py:200,kills:0,mute:false,incT:0}}
+function defSave(){return{tree:1,credits:300,unlocked:['marine','atm','scout'],comp:{marine:8,atm:4,scout:2},res:null,prog:{},rpBank:0,conq:{},disc:{},px:0,py:200,kills:0,mute:false,incT:0}}
 let SV=defSave();
-try{const o=JSON.parse(localStorage.getItem(SKEY));if(o&&typeof o==='object')SV=Object.assign(defSave(),o)}catch(e){}
+let _raw=null;try{const o=JSON.parse(localStorage.getItem(SKEY));if(o&&typeof o==='object'){_raw=o;SV=Object.assign(defSave(),o)}}catch(e){}
 function save(){try{localStorage.setItem(SKEY,JSON.stringify(SV))}catch(e){}}
-delete SV.army;delete SV.capLvl;if(!SV.comp||typeof SV.comp!=='object')SV.comp={marine:8,tank:4};
+delete SV.army;delete SV.capLvl;
+if(_raw&&!_raw.tree){const OLDU={aa:300,medic:350,gunship:500,arty:600};const refund=(SV.unlocked||[]).reduce((a,k)=>a+(OLDU[k]||0),0);SV.credits+=refund;SV.refunded=refund;SV.unlocked=['marine','atm','scout'];SV.comp={marine:8,atm:4,scout:2};SV.tree=1;SV.res=null;SV.prog={};SV.rpBank=0}
+if(!SV.comp||typeof SV.comp!=='object')SV.comp={marine:8,atm:4,scout:2};
+// tech tree: parent, research points, price, grid pos
+const TECH={marine:{c:0,r:0},flame:{p:'marine',rp:30,cr:200,c:1,r:0},atm:{c:0,r:1},acar:{p:'atm',rp:25,cr:150,c:1,r:1},tank:{p:'acar',rp:60,cr:300,c:2,r:1},arty:{p:'tank',rp:90,cr:500,c:3,r:1},aa:{p:'acar',rp:45,cr:250,c:2,r:2},scout:{c:0,r:3},transport:{p:'scout',rp:40,cr:250,c:1,r:3},medic:{p:'transport',rp:60,cr:300,c:2,r:3},gunship:{p:'scout',rp:55,cr:400,c:1,r:4}};
+const owned=k=>SV.unlocked.includes(k);
+function techState(k){const t=TECH[k];if(owned(k))return'own';if((SV.prog[k]||0)>=t.rp)return'done';if(SV.res===k)return'res';if(owned(t.p))return'avail';return'lock'}
+function addRP(n){if(!n)return;if(bt)bt.rp=(bt.rp||0)+n;const k=SV.res;if(k&&techState(k)==='res'){SV.prog[k]=(SV.prog[k]||0)+n;if(SV.prog[k]>=TECH[k].rp){SV.prog[k]=TECH[k].rp;SV.res=null;toast('🔬 '+UT[k].name+' ✔',2500)}}else SV.rpBank=(SV.rpBank||0)+n}
+function startRes(k){const st=techState(k);if(st!=='avail'&&st!=='res')return false;SV.res=k;if(SV.rpBank){const b=SV.rpBank;SV.rpBank=0;addRP(b)}save();return true}
+function buyTech(k){if(techState(k)!=='done'||SV.credits<TECH[k].cr)return false;SV.credits-=TECH[k].cr;SV.unlocked.push(k);save();return true}
 const compTok=c=>UKEYS.reduce((s,k)=>s+(c[k]||0)*UT[k].tok,0);
 const compN=c=>UKEYS.reduce((s,k)=>s+(c[k]||0),0);
 
@@ -335,7 +356,7 @@ function genPlanet(p){
  for(let i=0;i<N*N/14;i++){const tx=Math.floor(R()*N),ty=Math.floor(R()*N);if(tiles[ty*N+tx]!==0)continue;const x=tx*T+Math.floor(R()*6),y=ty*T+Math.floor(R()*6);g.fillStyle=deco[1];g.fillRect(x,y+2,3,1);g.fillStyle=deco[0];if(R()<.5){g.fillRect(x+1,y,1,2)}else{g.fillRect(x,y+1,1,1);g.fillRect(x+2,y,1,2)}}
  // landing pad
  const lx=cx*T,ly=cy*T;g.fillStyle='#2b2d42';g.fillRect(lx-20,ly-20,40,40);g.fillStyle='#4a4e69';g.fillRect(lx-18,ly-18,36,36);g.fillStyle='#ffd75e';for(let k=-18;k<18;k+=6){g.fillRect(lx+k,ly-18,3,2);g.fillRect(lx+k,ly+16,3,2)}g.fillStyle='#ffffff';g.fillRect(lx-6,ly-8,2,16);g.fillRect(lx+4,ly-8,2,16);g.fillRect(lx-6,ly-1,12,2);
- return{N,tiles,img:c,ens,gas,mix,prof,vis:new Uint8Array(N*N),seen:new Uint8Array(N*N),pad:{x:lx,y:ly},bases:bases.length,storm:{t:8,on:0,strikes:[]},p,sz}}
+ return{N,tiles,img:c,tctx,ens,gas,mix,prof,vis:new Uint8Array(N*N),seen:new Uint8Array(N*N),pad:{x:lx,y:ly},bases:bases.length,storm:{t:8,on:0,strikes:[]},p,sz}}
 function tileAt(wx,wy){if(!planet)return 0;const tx=Math.floor(wx/T),ty=Math.floor(wy/T),N=planet.N;if(tx<0||ty<0||tx>=N||ty>=N)return 1;return planet.tiles[ty*N+tx]}
 function solid(wx,wy){return IMPASS(tileAt(wx,wy))}
 function blocked(x,y,r){return solid(x-r,y-r)||solid(x+r,y-r)||solid(x-r,y+r)||solid(x+r,y+r)||solid(x,y-r)||solid(x,y+r)||solid(x-r,y)||solid(x+r,y)}
@@ -363,7 +384,7 @@ addEventListener('keydown',e=>{keys[e.code]=true;if(['Space','ArrowUp','ArrowDow
  if(e.code==='Escape'||e.code==='KeyP'){if(state==='space'||state==='planet')pauseGame();else if(state==='paused')resume()}
  if((e.code==='KeyE'||e.code==='Enter')&&state==='space'&&promptAct)promptAct();
  if(e.code==='KeyM'&&(state==='space'||state==='map'))toggleMap();
- if(state==='planet'){if(e.code==='KeyQ')selectAll();if(e.code==='KeyX')stopSel();
+ if(state==='planet'){if(e.code==='KeyQ')selectAll();if(e.code==='KeyX')stopSel();if(e.code==='KeyL')loadSel();if(e.code==='KeyU')unloadSel();
   const m=e.code.match(/^Digit([1-5])$/);if(m){if(e.ctrlKey||e.metaKey){e.preventDefault();groups[m[1]]=sel.slice();toast('Group '+m[1]+' set ('+sel.length+')',1200)}else if(groups[m[1]]){sel=groups[m[1]].filter(u=>u.alive);const c=centroid(sel);if(c&&e.shiftKey){cam.x=c.x-W/2;cam.y=c.y-H/2}}}}});
 addEventListener('keyup',e=>keys[e.code]=false);
 C.addEventListener('contextmenu',e=>e.preventDefault());
@@ -422,7 +443,8 @@ function income(dt){SV.incT=(SV.incT||0)+dt;if(SV.incT>=60){SV.incT=0;const ids=
 
 // ================= BATTLE =================
 let uid=0,offFire=0,shotLog=[],follow=true;
-function mkUnit(team,k,x,y){const d=team?ET[k]:UT[k],hm=team?bt.hm:1;return{id:++uid,team,k,d,x,y,vx:0,vy:0,hp:d.hp*hm,max:d.hp*hm,dmgM:team?bt.dm:1,a:team?Math.PI/2:-Math.PI/2,cd:Math.random()*.6,tgt:null,order:null,alive:true,flash:0,air:!!d.air,r:d.r,home:{x,y},acqT:Math.random()*.4,spr:team?ESPR[d.spr]:USPR[k],bob:Math.random()*9,losT:0,los:true,stuck:0}}
+function mkUnit(team,k,x,y){if(!team&&UT[k].cap){const u=mkUnit0(team,k,x,y);u.cargo=[];return u}return mkUnit0(team,k,x,y)}
+function mkUnit0(team,k,x,y){const d=team?ET[k]:UT[k],hm=team?bt.hm:1;return{id:++uid,team,k,d,x,y,vx:0,vy:0,hp:d.hp*hm,max:d.hp*hm,dmgM:team?bt.dm:1,a:team?Math.PI/2:-Math.PI/2,cd:Math.random()*.6,tgt:null,order:null,alive:true,flash:0,air:!!d.air,r:d.r,home:{x,y},acqT:Math.random()*.4,spr:team?ESPR[d.spr]:USPR[k],bob:Math.random()*9,losT:0,los:true,stuck:0}}
 function spotsAround(x,y,n,r0=10,rad=4){const out=[];for(let r=r0;out.length<n&&r<400;r+=10){const c=r?Math.max(6,Math.floor(TAU*r/11)):1;for(let i=0;i<c&&out.length<n;i++){const a=i/c*TAU+r,px=x+Math.cos(a)*r,py=y+Math.sin(a)*r;if(!blocked(px,py,rad))out.push({x:px,y:py})}}return out}
 function enterPlanet(p,comp){comp=comp||SV.comp;setPrompt(null);transition('Invading '+p.name+'...',()=>{curP=p;planet=genPlanet(p);fields.clear();follow=true;
  bt={units:[],proj:[],hm:.8+.35*(p.tier-1),dm:1+.2*(p.tier-1),won:false,over:false,kills:0,lostN:{},start:{...comp},strikes:[]};
@@ -432,7 +454,7 @@ function enterPlanet(p,comp){comp=comp||SV.comp;setPrompt(null);transition('Inva
  {const N=planet.N;for(const u of bt.units)if(u.k==='core'){const gx=Math.floor(u.x/T),gy=Math.floor(u.y/T);for(let j=-4;j<=4;j++)for(let i=-4;i<=4;i++){const x=gx+i,y=gy+j;if(x>=0&&y>=0&&x<N&&y<N&&i*i+j*j<=16)planet.seen[y*N+x]=1}}fogT=0;fogC=null}
  sel=bt.units.filter(u=>!u.team);groups={};cam.x=planet.pad.x-W/2;cam.y=planet.pad.y-H/2;parts=[];state='planet';
  const B=BIOMES[p.biome];setTimeout(()=>banner(p.name.toUpperCase(),'⬢ x'+planet.bases,2),600);0})}
-function leaveBattle(){planet=null;bt=null;sel=[];parts=[];const p=curP;curP=null;state='space';P.x=p.x+Math.cos(-2.4)*(p.r+40);P.y=p.y+Math.sin(-2.4)*(p.r+40);P.vx=P.vy=0;P.tx=null;save()}
+function leaveBattle(){if(bt&&bt.rp){const _n=bt.rp;setTimeout(()=>toast('🔬 +'+_n+' RP'+(SV.res?' → '+UT[SV.res].name+' '+SV.prog[SV.res]+'/'+TECH[SV.res].rp:''),3500),400)}planet=null;bt=null;sel=[];parts=[];const p=curP;curP=null;state='space';P.x=p.x+Math.cos(-2.4)*(p.r+40);P.y=p.y+Math.sin(-2.4)*(p.r+40);P.vx=P.vy=0;P.tx=null;save()}
 function retreat(){if(!bt||trans)return;const n=bt.units.filter(u=>!u.team&&u.alive).length,bt0won=bt.won;transition(bt.won?'Launching...':'Retreating...',()=>{leaveBattle();0})}
 
 // flow fields
@@ -454,7 +476,7 @@ function losClear(x1,y1,x2,y2){const d=dist(x1,y1,x2,y2),n=Math.ceil(d/4),b=curP
 const tileOf=(x,y)=>{const N=planet.N;return clamp(Math.floor(y/T),0,N-1)*N+clamp(Math.floor(x/T),0,N-1)};
 function visR(u){return u.d.vis*(!u.air&&tileAt(u.x,u.y)===5?1.3:1)}
 function losTiles(x0,y0,x1,y1){const tl=planet.tiles,N=planet.N;let dx=Math.abs(x1-x0),dy=-Math.abs(y1-y0),sx=x0<x1?1:-1,sy=y0<y1?1:-1,e=dx+dy,x=x0,y=y0;for(;;){if(x===x1&&y===y1)return true;if(!(x===x0&&y===y0)&&BLOCKV(tl[y*N+x]))return false;const e2=2*e;if(e2>=dy){e+=dy;x+=sx}if(e2<=dx){e+=dx;y+=sy}}}
-function hiddenFrom(t,team){if(t.air||!t.d.spd||t.revealT>0)return false;if(!HIDE(tileAt(t.x,t.y)))return false;for(const o of bt.units)if(o.alive&&o.team===team&&Math.abs(o.x-t.x)<14&&Math.abs(o.y-t.y)<14)return false;return true}
+function hiddenFrom(t,team){if(t.air||!t.d.spd||t.revealT>0)return false;if(!HIDE(tileAt(t.x,t.y)))return false;for(const o of bt.units){if(!o.alive||o.team!==team)continue;const r=o.k==='flame'?30:14;if(Math.abs(o.x-t.x)<r&&Math.abs(o.y-t.y)<r)return false}return true}
 function seenBy(v,t){if(v.team===0)return !!planet.vis[tileOf(t.x,t.y)]&&!hiddenFrom(t,0);
  if(dist(v.x,v.y,t.x,t.y)>visR(v))return false;if(hiddenFrom(t,1))return false;if(v.air||t.air)return true;return losTiles(Math.floor(v.x/T),Math.floor(v.y/T),Math.floor(t.x/T),Math.floor(t.y/T))}
 const visibleToPlayer=t=>t.team===0||(!!planet.vis[tileOf(t.x,t.y)]&&!hiddenFrom(t,0));
@@ -474,10 +496,11 @@ function steer(u,tx,ty,dt){let dx,dy;
  const l=Math.hypot(dx,dy)||1,sp=Math.min(u.d.spd,!u.tgt&&u.order&&u.order.spd||1e9)*speedMod(u),k=Math.min(1,dt*8*slip(u));u.vx=lerp(u.vx,dx/l*sp,k);u.vy=lerp(u.vy,dy/l*sp,k);u.wantMove=true;if(!u.tgt||u.d.heal)u.a=Math.atan2(u.vy,u.vx)}
 function brake(u,dt){const k=Math.min(1,dt*8*slip(u));u.vx=lerp(u.vx,0,k);u.vy=lerp(u.vy,0,k)}
 function acquire(u,rad){let best=null,bs=rad;for(const o of bt.units){if(!o.alive||o.team===u.team||!canHit(u,o))continue;const d=dist(u.x,u.y,o.x,o.y);if(d>rad||(u.d.minr&&d<u.d.minr))continue;if(!seenBy(u,o))continue;const sc=d+(o.d.arm==='S'&&u.d.dt!=='siege'?40:0)-MULT[u.d.dt][o.d.arm]*40;if(sc<bs){bs=sc;best=o}}return best}
-function updUnit(u,dt){const d=u.d;u.cd-=dt;u.flash-=dt;u.acqT-=dt;u.revealT=(u.revealT||0)-dt;u.wantMove=false;
+function updUnit(u,dt){const d=u.d;if(u.order&&u.order.type==='board'){const t=u.order.t;if(!t.alive||t.cargo.length>=t.d.cap){u.order=null}else if(dist(u.x,u.y,t.x,t.y)<12){board(u,t);return}else{u.cd-=dt;steer(u,t.x,t.y,dt);return}}u.cd-=dt;u.flash-=dt;u.acqT-=dt;u.revealT=(u.revealT||0)-dt;u.wantMove=false;
  if(!u.air&&d.spd){const b=curP.biome,t=tileAt(u.x,u.y);if((b==='lava'||b==='toxic')&&t===2)hzDmg(u,10*dt);if(b==='toxic')for(const g of planet.gas)if(dist(g.x,g.y,u.x,u.y)<g.r)hzDmg(u,5*dt);if(!u.alive)return}
  if(u.k==='core'){coreTick(u,dt);return}
  if(d.heal){updHealer(u,dt);return}
+ if(d.cap){const o=u.order;if(o&&(o.type==='move'||o.type==='amove')){if(dist(u.x,u.y,o.x,o.y)<5)u.order=null;else steer(u,o.x,o.y,dt)}else brake(u,dt);return}
  if(u.tgt&&(!u.tgt.alive))u.tgt=null;
  const o=u.order;
  if(o&&o.type==='attack'){if(o.t.alive&&visibleToPlayer(o.t))u.tgt=o.t;else{u.order=null;u.tgt=null}}
@@ -501,27 +524,31 @@ function updHealer(u,dt){let best=null,bd=150;for(const o of bt.units)if(o.alive
  if(u.healT){u.healT.hp=Math.min(u.healT.max,u.healT.hp+u.d.heal*dt);u.a=Math.atan2(u.healT.y-u.y,u.healT.x-u.x);if(Math.random()<dt*20)parts.push({x:u.healT.x+(Math.random()-.5)*6,y:u.healT.y+(Math.random()-.5)*6,vx:0,vy:-20,life:.4,max:.4,col:'#4ade80',sz:1})}}
 function coreTick(u,dt){u.ang=(u.ang||0)+dt;u.spawnT=(u.spawnT??15)-dt;if(u.spawnT<=0){u.spawnT=Math.max(12,26-curP.tier*2);const near=bt.units.filter(o=>o.alive&&o.team===1&&o.d.spd&&dist(o.x,o.y,u.x,u.y)<160).length;if(near<3+curP.tier){const pool=poolFor(curP),k=pool[Math.floor(Math.random()*pool.length)],sp=spotsAround(u.x,u.y,1,18,6)[0];if(sp){const e=mkUnit(1,k,sp.x,sp.y);e.home={x:u.x,y:u.y};bt.units.push(e);burst(sp.x,sp.y,'#ff3bd4',8,40,.4)}}}}
 function hzDmg(u,a){u.hp-=a;if(u.hp<=0)killUnit(u)}
-const PSPD={small:420,cannon:240,flak:300,rocket:190,siege:140};
+const PSPD={flame:220,small:420,cannon:240,flak:300,rocket:190,siege:140};
 function fire(u,t){const d=u.d;u.revealT=1.5;if(u.team===1&&!onScreen(u.x,u.y,0)&&onScreen(t.x,t.y,0))offFire++;shotLog.push(Math.round(dist(u.x,u.y,t.x,t.y)));if(shotLog.length>500)shotLog.shift();u.cd=d.cd*(.9+Math.random()*.2);const p={x:u.x+Math.cos(u.a)*u.r,y:u.y+Math.sin(u.a)*u.r,t,kind:d.dt,dmg:d.dmg*u.dmgM,team:u.team,spd:PSPD[d.dt],src:u,tx:t.x,ty:t.y,sx:u.x,sy:u.y,air:u.air};
  if(d.dt==='siege'){p.T=Math.max(.4,dist(u.x,u.y,t.x,t.y)/p.spd);p.age=0}bt.proj.push(p);
- if(onScreen(u.x,u.y,20))sfx({small:'shot',cannon:'cannon',flak:'flak',rocket:'missile',siege:'cannon'}[d.dt])}
+ if(onScreen(u.x,u.y,20))sfx({flame:'shot',small:'shot',cannon:'cannon',flak:'flak',rocket:'missile',siege:'cannon'}[d.dt])}
 function updProj(dt){const pr=bt.proj;for(let i=pr.length-1;i>=0;i--){const p=pr[i];
  if(p.kind==='siege'){p.age+=dt;const k=Math.min(1,p.age/p.T);p.x=lerp(p.sx,p.tx,k);p.y=lerp(p.sy,p.ty,k);p.h=Math.sin(Math.PI*k)*Math.min(60,p.T*45);if(k>=1){for(const o of bt.units){if(!o.alive||o.team===p.team||o.air)continue;const dd=dist(o.x,o.y,p.tx,p.ty);if(dd<o.r+16)dmgUnit(o,p.dmg*(dd<o.r+5?1:.5)*MULT.siege[o.d.arm]*(TCOVER[tileAt(o.x,o.y)]||1),p.src)}explode(p.tx,p.ty,false);pr.splice(i,1)}continue}
  if(p.t.alive){p.tx=p.t.x;p.ty=p.t.y-(p.t.air?4:0)}
  const dx=p.tx-p.x,dy=p.ty-p.y,l=Math.hypot(dx,dy),st=p.spd*dt;
- if(l<=st+1){if(p.t.alive)dmgUnit(p.t,p.dmg*MULT[p.kind][p.t.d.arm]*(p.t.air||!p.src||p.src.d.range<20?1:TCOVER[tileAt(p.t.x,p.t.y)]||1),p.src);burst(p.tx,p.ty,p.kind==='flak'?'#e5e5e5':p.kind==='rocket'?'#ff6b35':'#ffd75e',p.kind==='small'?2:6,40,.25);if(p.kind==='cannon'||p.kind==='rocket')shake=Math.max(shake,.8);pr.splice(i,1)}
+ if(l<=st+1){if(p.kind==='flame'){flameHit(p);pr.splice(i,1);continue}if(p.t.alive)dmgUnit(p.t,p.dmg*MULT[p.kind][p.t.d.arm]*(p.t.air||!p.src||p.src.d.range<20?1:TCOVER[tileAt(p.t.x,p.t.y)]||1),p.src);burst(p.tx,p.ty,p.kind==='flak'?'#e5e5e5':p.kind==='rocket'?'#ff6b35':'#ffd75e',p.kind==='small'?2:6,40,.25);if(p.kind==='cannon'||p.kind==='rocket')shake=Math.max(shake,.8);pr.splice(i,1)}
  else{p.x+=dx/l*st;p.y+=dy/l*st;if(p.kind==='rocket'&&Math.random()<.7)parts.push({x:p.x,y:p.y,vx:0,vy:0,life:.3,max:.3,col:'#999',sz:1})}}}
+function flameHit(p){const sp=p.src.d.splash||10;for(const o of bt.units){if(!o.alive||o.team===p.team||o.air)continue;const dd=dist(o.x,o.y,p.tx,p.ty);if(dd<o.r+sp){dmgUnit(o,p.dmg*(dd<o.r+3?1:.6)*MULT.flame[o.d.arm],p.src);o.revealT=Math.max(o.revealT||0,3)}}
+ bt.flameHits=(bt.flameHits||0)+1;burnAt(p.tx,p.ty);for(let k=0;k<6;k++)parts.push({x:p.tx+(Math.random()-.5)*sp,y:p.ty+(Math.random()-.5)*sp,vx:(Math.random()-.5)*20,vy:-20-Math.random()*20,life:.5,max:.5,col:Math.random()<.5?'#ff9f1c':'#ff3b3b',sz:2})}
+function burnAt(x,y){const pl=planet,N=pl.N,gx=Math.floor(x/T),gy=Math.floor(y/T),g=pl.img.getContext('2d');for(let j=-1;j<=1;j++)for(let i=-1;i<=1;i++){const tx=gx+i,ty=gy+j;if(tx<0||ty<0||tx>=N||ty>=N)continue;const k=ty*N+tx;if(pl.tiles[k]!==4&&pl.tiles[k]!==10)continue;if(Math.abs(i)+Math.abs(j)>1&&Math.random()<.5)continue;pl.tiles[k]=0;bt.burned=(bt.burned||0)+1;
+  const im=g.createImageData(T,T);for(let py=0;py<T;py++)for(let px=0;px<T;px++){let c=terrainPix(pl.tiles,N,tx,ty,tx*T+px,ty*T+py,pl.tctx);c=c.map(v=>v*.45);if(hash2(px,py,k)<.15)c=[40,30,25];const o=(py*T+px)*4;im.data[o]=c[0];im.data[o+1]=c[1];im.data[o+2]=c[2];im.data[o+3]=255}g.putImageData(im,tx*T,ty*T)}fields.clear();pl.miniImg=null}
 function dmgUnit(u,a,src){if(!u.alive||a<=0)return;u.hp-=a;u.flash=.08;
  if(src&&src.alive&&canHit(u,src)&&(u.team===1?seenBy(u,src):visibleToPlayer(src))&&!(u.order&&u.order.type!=='amove')&&(!u.tgt||(u.tgt.d.arm==='S'&&MULT[u.d.dt][src.d.arm]>=MULT[u.d.dt].S))){u.tgt=src}
  if(u.team===1&&src&&src.alive){for(const o of bt.units)if(o.alive&&o.team===1&&!o.tgt&&o.d.spd&&canHit(o,src)&&dist(o.x,o.y,u.x,u.y)<100)o.tgt=src}
  if(u.hp<=0)killUnit(u)}
-function killUnit(u){if(!u.alive)return;u.alive=false;explode(u.x,u.y,u.k==='core'||u.d.arm==='A');
- if(u.team){bt.kills++;SV.kills++;const t=curP.tier,cr=u.k==='core'?50*t:u.d.arm==='S'?15*t:2+t;addCredits(cr,u.x,u.y);
+function killUnit(u){if(!u.alive)return;u.alive=false;if(u.cargo){for(const c of u.cargo){c.alive=false;bt.lostN[c.k]=(bt.lostN[c.k]||0)+1}u.cargo=[]}explode(u.x,u.y,u.k==='core'||u.d.arm==='A');
+ if(u.team){bt.kills++;SV.kills++;const t=curP.tier;addRP(u.k==='core'?10*t:u.d.arm==='S'?3*t:t);const cr=u.k==='core'?50*t:u.d.arm==='S'?15*t:2+t;addCredits(cr,u.x,u.y);
   if(u.k==='core'){const left=bt.units.filter(o=>o.alive&&o.k==='core').length;if(left===0)conquer();else banner('⬢ '+left+' LEFT','',1.6)}}
  else{bt.lostN[u.k]=(bt.lostN[u.k]||0)+1;
-  if(!bt.units.some(o=>o.alive&&!o.team)&&!bt.won&&!bt.over){bt.over=true;setTimeout(()=>{state='dead';$('dtitle').textContent='INVASION FAILED';$('dtxt').innerHTML='Your whole army on '+curP.name+' was destroyed.<br>Pick a different composition next time.<br><br>Tip: check the counters - tanks can\'t shoot air, flak shreds air.';$('dead').classList.add('on')},900)}}}
+  if(!bt.units.some(o=>o.alive&&!o.team)&&!bt.won&&!bt.over){bt.over=true;setTimeout(()=>{state='dead';$('dtitle').textContent='INVASION FAILED';$('dtxt').innerHTML='✕ '+curP.name;$('dead').classList.add('on')},900)}}}
 $('bdead').onclick=()=>{$('dead').classList.remove('on');state='planet';transition('Returning to fleet...',()=>leaveBattle())};
-function conquer(){const p=curP,first=!SV.conq[p.id],rw=first?p.reward:Math.round(p.reward*.25/10)*10;SV.conq[p.id]=true;SV.credits+=rw;save();bt.won=true;
+function conquer(){const p=curP,first=!SV.conq[p.id],rw=first?p.reward:Math.round(p.reward*.25/10)*10;addRP((first?20:8)*p.tier);SV.conq[p.id]=true;SV.credits+=rw;save();bt.won=true;
  const lost=Object.entries(bt.lostN).map(([k,n])=>n+' '+UT[k].name).join(', ')||'none';
  banner('PLANET CONQUERED!','+'+rw+' CR'+(first?'':' (raid bonus)')+' - losses: '+lost,4.5);sfx('coin');setTimeout(()=>sfx('coin'),150);
  for(const u of bt.units)if(u.alive&&!u.team){u.order=null;u.tgt=null}
@@ -556,12 +583,15 @@ function clickSelect(cx,cy,add){const w=toWorld(cx,cy),u=unitAt(w.x,w.y,0),now=p
 function touchTap(cx,cy){const w=toWorld(cx,cy),u=unitAt(w.x,w.y,0);if(u){clickSelect(cx,cy,boxMode);return}if(sel.length)command(w);else 0}
 function boxSelect(x1,y1,x2,y2,add){const a=toWorld(Math.min(x1,x2),Math.min(y1,y2)),b=toWorld(Math.max(x1,x2),Math.max(y1,y2));const got=bt.units.filter(u=>u.alive&&!u.team&&u.x>=a.x-u.r&&u.x<=b.x+u.r&&u.y>=a.y-u.r&&u.y<=b.y+u.r);
  sel=add?[...new Set(sel.concat(got))]:got;if(got.length)sfx('ui')}
+function board(u,t){const i=bt.units.indexOf(u);if(i>=0)bt.units.splice(i,1);u.order=null;u.tgt=null;t.cargo.push(u);sel=sel.filter(o=>o!==u);burst(t.x,t.y,'#4cc9f0',4,30,.3)}
+function loadSel(){const trs=sel.filter(u=>u.d.cap&&u.alive);if(!trs.length)return 0;let n=0;for(const u of sel){if(!u.d.inf)continue;const t=trs.filter(t=>t.cargo.length+bt.units.filter(o=>o.order&&o.order.type==='board'&&o.order.t===t).length<t.d.cap).sort((a,b)=>dist(u.x,u.y,a.x,a.y)-dist(u.x,u.y,b.x,b.y))[0];if(!t)break;u.order={type:'board',t};n++}sfx('ui');return n}
+function unloadSel(){let n=0;for(const t of sel){if(!t.d||!t.d.cap||!t.cargo.length)continue;if(blocked(t.x,t.y,3)){toast('✕',800);continue}const sp=spotsAround(t.x,t.y,t.cargo.length,6,6);t.cargo.forEach((u,i)=>{const s=sp[i]||{x:t.x,y:t.y};u.x=s.x;u.y=s.y;u.vx=u.vy=0;u.order=null;u.home={x:s.x,y:s.y};bt.units.push(u);n++});t.cargo=[]}sfx('ui');return n}
 function selectAll(){if(!bt)return;sel=bt.units.filter(u=>u.alive&&!u.team);sfx('ui')}
 function stopSel(){for(const u of sel){u.order=null;u.tgt=null}}
 function centroid(a){if(!a.length)return null;let x=0,y=0;for(const u of a){x+=u.x;y+=u.y}return{x:x/a.length,y:y/a.length}}
 let marks=[];
 function command(w){if(!sel.length||!bt)return;const e=unitAt(w.x,w.y,1);
- if(e){let ok=0;for(const u of sel){if(u.d.heal){u.order={type:'move',x:e.x,y:e.y,rad:20};continue}if(canHit(u,e)){u.order={type:'attack',t:e};u.tgt=e;ok++}else{u.order={type:'amove',x:e.x,y:e.y,rad:20};u.tgt=null}}
+ if(e){let ok=0;for(const u of sel){if(u.d.heal||u.d.cap){u.order={type:'move',x:e.x,y:e.y,rad:20};continue}if(canHit(u,e)){u.order={type:'attack',t:e};u.tgt=e;ok++}else{u.order={type:'amove',x:e.x,y:e.y,rad:20};u.tgt=null}}
   marks.push({x:e.x,y:e.y,t:.6,col:'#ff4d4d'});if(!ok)toast('✕ '+ARM[e.d.arm][0],1200);sfx('ui');return}
  const n=sel.length,cols=Math.ceil(Math.sqrt(n)),sp=11,rad=6+Math.sqrt(n)*5,gs=Math.min(...sel.map(u=>u.d.spd));
  sel.slice().sort((a,b)=>a.id-b.id).forEach((u,i)=>{const cx=(i%cols-(cols-1)/2)*sp,cy=(Math.floor(i/cols)-(Math.ceil(n/cols)-1)/2)*sp;let x=w.x+cx,y=w.y+cy;if(!u.air&&blocked(x,y,u.r)){x=w.x;y=w.y}u.order={type:'amove',x,y,rad,spd:gs};if(u.tgt&&(!u.tgt.alive||dist(u.x,u.y,u.tgt.x,u.tgt.y)>u.d.range+15))u.tgt=null;u.returning=false});
@@ -587,7 +617,7 @@ function drawUnit(u){const x=Math.round(u.x-cam.x),y0=Math.round(u.y-cam.y),y=u.
  else if(u.team&&!u.air&&u.k!=='walker'&&u.k!=='flakbot'){X.drawImage(u.spr,x-Math.floor(u.spr.width/2),y-Math.floor(u.spr.height/2)+Math.round(Math.sin(time*8+u.bob)*.6))}
  else drawRot(x,y,u.a,u.spr);
  if(u.flash>0){X.globalCompositeOperation='lighter';X.fillStyle='rgba(255,255,255,.6)';X.fillRect(x-u.r,y-u.r,u.r*2,u.r*2);X.globalCompositeOperation='source-over'}
- if(isSel||u.hp<u.max*.995)hpBar(u,x,y-u.r-5,Math.max(8,u.r*2+2));
+ if(isSel||u.hp<u.max*.995)hpBar(u,x,y-u.r-5,Math.max(8,u.r*2+2));if(u.cargo&&u.cargo.length){X.fillStyle='#4cc9f0';for(let i=0;i<u.cargo.length;i++)X.fillRect(x-u.r+i*2,y+u.r+1,1,2)}
  if(u.healT){X.strokeStyle='rgba(74,222,128,.7)';X.beginPath();X.moveTo(x,y);X.lineTo(Math.round(u.healT.x-cam.x),Math.round(u.healT.y-cam.y));X.stroke()}}
 function drawBattle(dt){const pl=planet;X.fillStyle='#000';X.fillRect(0,0,W,H);X.drawImage(pl.img,-Math.round(cam.x),-Math.round(cam.y));const B=BIOMES[curP.biome];
  if(curP.biome==='lava'||curP.biome==='toxic'){X.fillStyle=B.haz[1];for(let i=0;i<25;i++){const x=cam.x+Math.random()*W,y=cam.y+Math.random()*H;if(tileAt(x,y)===2)X.fillRect(Math.round(x-cam.x),Math.round(y-cam.y),1,1)}}
@@ -595,7 +625,7 @@ function drawBattle(dt){const pl=planet;X.fillStyle='#000';X.fillRect(0,0,W,H);X
  for(const u of vis)if(!u.air)drawUnit(u);
  X.fillStyle='rgba(0,0,0,.35)';for(const u of vis)if(u.air)X.fillRect(Math.round(u.x-cam.x)-u.r+1,Math.round(u.y-cam.y)+3,u.r*2-2,2);
  for(const u of vis)if(u.air)drawUnit(u);
- for(const p of bt.proj){if(!pl.vis[tileOf(p.x,p.y)])continue;const x=Math.round(p.x-cam.x),y=Math.round(p.y-cam.y);if(p.kind==='siege'){X.fillStyle='rgba(0,0,0,.4)';X.fillRect(x-1,y,3,2);X.fillStyle='#ffd75e';X.fillRect(x-1,y-Math.round(p.h)-1,3,3)}else{X.fillStyle={small:'#ffe066',cannon:'#ff9f1c',flak:'#f1f5f9',rocket:'#ff3b3b'}[p.kind];const s=p.kind==='small'?1:2;X.fillRect(x-(s>>1),y-(s>>1),s,s)}}
+ for(const p of bt.proj){if(!pl.vis[tileOf(p.x,p.y)])continue;const x=Math.round(p.x-cam.x),y=Math.round(p.y-cam.y);if(p.kind==='siege'){X.fillStyle='rgba(0,0,0,.4)';X.fillRect(x-1,y,3,2);X.fillStyle='#ffd75e';X.fillRect(x-1,y-Math.round(p.h)-1,3,3)}else{X.fillStyle={flame:'#ff7b00',small:'#ffe066',cannon:'#ff9f1c',flak:'#f1f5f9',rocket:'#ff3b3b'}[p.kind];const s=p.kind==='small'?1:2;X.fillRect(x-(s>>1),y-(s>>1),s,s)}}
  if(fogC){X.imageSmoothingEnabled=false;X.drawImage(fogC,-Math.round(cam.x),-Math.round(cam.y),pl.sz,pl.sz)}
  drawParts(dt);
  for(const g of pl.gas){if(!onScreen(g.x,g.y,g.r))continue;X.fillStyle='rgba(150,255,80,.13)';for(let k=0;k<3;k++){X.beginPath();X.arc(Math.round(g.x-cam.x+Math.sin(time+k*2)*6),Math.round(g.y-cam.y+Math.cos(time*.8+k)*6),g.r*(.6+k*.2),0,TAU);X.fill()}}
@@ -648,13 +678,13 @@ $('mbtn').onclick=toggleMap;$('bbmx').onclick=toggleMap;
 // ================= HUD / PANEL =================
 function updHUD(){const inGame=['space','planet','paused','map','dead'].includes(state);$('hud').style.display=inGame?'block':'none';MC.style.display=inGame?'block':'none';$('pbtn').style.display=inGame?'block':'none';$('mbtn').style.display=inGame&&!planet?'block':'none';$('panel').style.display=inGame&&planet&&bt?'flex':'none';if(!inGame){$('prompt').style.display='none';return}
  $('cred').textContent='CR '+SV.credits;
- if(planet&&bt){const mine=bt.units.filter(u=>!u.team),cl=bt.units.filter(u=>u.k==='core').length;$('loc').textContent=curP.name;$('obj').textContent=bt.won?'★ WON':'⬢ '+(planet.bases-cl)+'/'+planet.bases;$('army').textContent='▲ '+mine.length;$('haz').textContent=curP.biome==='storm'&&planet.storm.on>0?'⚡ STORM':''}
+ if(planet&&bt){const mine=bt.units.filter(u=>!u.team),cl=bt.units.filter(u=>u.k==='core').length;$('loc').textContent=curP.name;$('obj').textContent=bt.won?'★ WON':'⬢ '+(planet.bases-cl)+'/'+planet.bases;$('army').textContent='▲ '+mine.reduce((a,u)=>a+1+(u.cargo?u.cargo.length:0),0);$('haz').textContent=curP.biome==='storm'&&planet.storm.on>0?'⚡ STORM':''}
  else{$('loc').textContent='★ '+Object.keys(SV.conq).length+'/'+PLANETS.length;$('army').textContent='';$('obj').textContent='';$('haz').textContent=''}}
 let panelKey='';
-function updPanel(){const cnt={};for(const u of sel)cnt[u.k]=(cnt[u.k]||0)+1;const key=JSON.stringify(cnt)+bt.won+boxMode+follow;if(key===panelKey)return;panelKey=key;
+function updPanel(){const cnt={};for(const u of sel)cnt[u.k]=(cnt[u.k]||0)+1;const hasT=sel.some(u=>u.d.cap);$('bload').style.display=hasT&&sel.some(u=>u.d.inf)?'':'none';$('bunl').style.display=sel.some(u=>u.cargo&&u.cargo.length)?'':'none';const key=JSON.stringify(cnt)+bt.won+boxMode+follow+$('bload').style.display+$('bunl').style.display;if(key===panelKey)return;panelKey=key;
  $('selinfo').innerHTML=sel.length?Object.entries(cnt).map(([k,n])=>'<span class="chip" style="border-color:'+ARM[UT[k].arm][1]+'">'+UT[k].name+' x'+n+'</span>').join(''):'<span class="dim">—</span>';
  $('bret').textContent=bt.won?'LAUNCH':'RETREAT';$('bret').className=bt.won?'gold':'red';$('bbox').classList.toggle('on',boxMode);$('bfol').classList.toggle('on',follow)}
-$('ball').onclick=()=>{selectAll();follow=true};$('bfol').onclick=()=>{follow=!follow;panelKey=''};$('bstop').onclick=()=>stopSel();$('bbox').onclick=()=>{boxMode=!boxMode;panelKey='';toast(boxMode?'BOX':'PAN',900)};
+$('ball').onclick=()=>{selectAll();follow=true};$('bfol').onclick=()=>{follow=!follow;panelKey=''};$('bstop').onclick=()=>stopSel();$('bload').onclick=()=>loadSel();$('bunl').onclick=()=>unloadSel();$('bbox').onclick=()=>{boxMode=!boxMode;panelKey='';toast(boxMode?'BOX':'PAN',900)};
 $('bret').onclick=()=>{if(bt&&!bt.won&&!confirm('Retreat?'))return;retreat()};
 
 // ================= MENUS / SHOP =================
@@ -672,22 +702,27 @@ function openShop(from){shopFrom=from;state='shop';renderShop();showOv('hangar',
 $('bhx').onclick=()=>{showOv('hangar',false);sfx('ui');if(shopFrom==='menu'){state='menu';showOv('menu',true);updMenu()}else state='space'};
 const chip=(a)=>'<span class="chip" style="border-color:'+ARM[a][1]+';color:'+ARM[a][1]+'">'+ARM[a][0]+'</span>';
 function counterInfo(d){const strong=d.dt?Object.keys(ARM).filter(a=>MULT[d.dt][a]>=1.4):[],cant=d.dt?Object.keys(ARM).filter(a=>MULT[d.dt][a]===0):[],weak=Object.keys(MULT).filter(t=>MULT[t][d.arm]>=1.4);return{strong,cant,weak}}
-function renderShop(){$('hcred').innerHTML='<span style="color:#ffd75e">CR '+SV.credits+'</span>';
- const box=$('ships');box.innerHTML='';
- for(const k of UKEYS){const d=UT[k],un=SV.unlocked.includes(k),c=document.createElement('div');c.className='card'+(un?'':' locked');const ci=counterInfo(d);
-  const cv=mkc(d.rows[0].length+4,d.rows.length+4);cv.getContext('2d').drawImage(USPR[k],2,2);
-  c.innerHTML='<div class="nm">'+d.name+'</div>';c.appendChild(cv);
-  const dps=d.dt?Math.round(d.dmg/d.cd):0;
-  c.insertAdjacentHTML('beforeend','<div>'+chip(d.arm)+(d.air?' <span class="chip">FLIES</span>':'')+'</div>'+
-   '<div class="st">HP '+d.hp+' &middot; '+(d.dt?DTN[d.dt]+' '+dps+' DPS':'HEALS '+d.heal+'/s')+'<br>RANGE '+d.range+(d.minr?' (min '+d.minr+')':'')+' &middot; SPD '+d.spd+' &middot; <span style="color:#ffd75e">'+d.tok+' TOKEN'+(d.tok>1?'S':'')+'</span></div>'+
-   (d.dt?'<div class="cv"><b class="g">▲</b> '+(ci.strong.map(chip).join(' ')||'-')+'</div>':'<div class="cv"><b class="g">✚</b> heal</div>')+
-   '<div class="cv"><b class="r">▼</b> '+ci.weak.map(t=>'<span class="chip" title="'+DTEX[t]+'">'+DTN[t]+'</span>').join(' ')+'</div>'+
-   (ci.cant.length?'<div class="cv"><b class="r">✕</b> '+ci.cant.map(chip).join(' ')+'</div>':'')+
-   '');
-  const b=document.createElement('button');
-  if(!un){b.textContent=d.unlock+' CR';b.disabled=SV.credits<d.unlock;b.onclick=()=>{if(SV.credits<d.unlock)return;SV.credits-=d.unlock;SV.unlocked.push(k);save();sfx('coin');toast('✔ '+d.name);renderShop()}}
-  else{b.textContent='✔';b.disabled=true}
-  c.appendChild(b);box.appendChild(c)}}
+let techSel='marine';
+function renderShop(){$('hcred').innerHTML='<span style="color:#ffd75e">CR '+SV.credits+'</span>'+(SV.rpBank?' &middot; 🔬 '+SV.rpBank:'');
+ const box=$('ships');box.innerHTML='';const CW=88,RH=62,NW=72,NH=50,wrap=document.createElement('div');wrap.className='tree';wrap.style.width=(CW*3+NW)+'px';wrap.style.height=(RH*4+NH)+'px';
+ const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('width',CW*3+NW);svg.setAttribute('height',RH*4+NH);wrap.appendChild(svg);
+ for(const k in TECH){const t=TECH[k];if(!t.p)continue;const P=TECH[t.p],l=document.createElementNS('http://www.w3.org/2000/svg','path');const x1=P.c*CW+NW,y1=P.r*RH+NH/2,x2=t.c*CW,y2=t.r*RH+NH/2;l.setAttribute('d','M'+x1+' '+y1+' H'+(x1+(x2-x1)/2)+' V'+y2+' H'+x2);l.setAttribute('stroke',owned(k)?'#4ade80':owned(t.p)?'#ffd75e':'#3b3280');l.setAttribute('stroke-width','3');l.setAttribute('fill','none');svg.appendChild(l)}
+ for(const k in TECH){const t=TECH[k],d=UT[k],st=techState(k),n=document.createElement('div');n.className='tn '+st+(techSel===k?' sel':'');n.dataset.k=k;n.style.left=t.c*CW+'px';n.style.top=t.r*RH+'px';
+  const cv=mkc(d.rows[0].length+2,d.rows.length+2);cv.getContext('2d').drawImage(USPR[k],1,1);n.appendChild(cv);
+  const pr=t.rp?Math.min(1,(SV.prog[k]||0)/t.rp):1;
+  n.insertAdjacentHTML('beforeend','<div class="tl">'+d.name+'</div>'+(st==='res'||(st==='avail'&&SV.prog[k])?'<div class="pb"><i style="width:'+pr*100+'%"></i></div>':st==='done'?'<div class="tl" style="color:#ffd75e">'+t.cr+' CR</div>':st==='own'?'':'<div class="tl" style="color:#888">🔬'+t.rp+'</div>'));
+  n.onclick=()=>{techSel=k;sfx('ui');renderShop()};wrap.appendChild(n)}
+ box.appendChild(wrap);
+ // detail line for selected node
+ const k=techSel,d=UT[k],t=TECH[k],st=techState(k),ci=counterInfo(d),dt=document.createElement('div');dt.className='tdet';
+ dt.innerHTML='<b style="color:#ffd75e">'+d.name+'</b> '+chip(d.arm)+(d.dt?' <span class="chip">'+DTN[d.dt]+'</span>':'')+' ◆'+d.tok+'<br>'+(d.dt?'<b class="g">▲</b>'+(ci.strong.map(chip).join('')||'-')+' ':d.cap?'⇪'+d.cap+' ':'<b class="g">✚</b> ')+'<b class="r">▼</b>'+ci.weak.map(t=>'<span class="chip">'+DTN[t]+'</span>').join('')+(ci.cant.length?' <b class="r">✕</b>'+ci.cant.map(chip).join(''):'')+(t.rp?'<br>🔬 '+(SV.prog[k]||0)+'/'+t.rp+' &middot; '+t.cr+' CR':'');
+ const b=document.createElement('button');b.id='tbtn';
+ if(st==='avail'){b.textContent=SV.res?'🔬 SWITCH':'🔬 RESEARCH';b.onclick=()=>{startRes(k);renderShop()}}
+ else if(st==='res'){b.textContent='🔬 '+Math.floor(pr()*100)+'%';b.disabled=true}
+ else if(st==='done'){b.textContent='BUY '+t.cr+' CR';b.className='gold';b.disabled=SV.credits<t.cr;b.onclick=()=>{if(buyTech(k)){sfx('coin');toast('✔ '+d.name);renderShop()}}}
+ else if(st==='own'){b.textContent='✔';b.disabled=true}else{b.textContent='🔒 '+UT[t.p].name;b.disabled=true}
+ function pr(){return (SV.prog[k]||0)/t.rp}
+ dt.appendChild(document.createElement('br'));dt.appendChild(b);box.appendChild(dt)}
 
 function counterTable(){const ks=Object.keys(MULT);return '<table class="ct"><tr><th>DMG \\ ARMOR</th>'+Object.keys(ARM).map(a=>'<th style="color:'+ARM[a][1]+'">'+ARM[a][0]+'</th>').join('')+'</tr>'+ks.map(t=>'<tr><th title="'+DTEX[t]+'">'+DTN[t]+'</th>'+Object.keys(ARM).map(a=>{const m=MULT[t][a];return'<td class="'+(m>=1.4?'g':m===0?'z':m<=.5?'r':'')+'">'+(m===0?'X':m+'x')+'</td>'}).join('')+'</tr>').join('')+'</table>'}
 $('ctab').innerHTML=counterTable();$('ctab2').innerHTML=counterTable();
@@ -713,9 +748,9 @@ function openDeploy(p){dpPlanet=p;dpComp={};for(const k of UKEYS)if(SV.unlocked.
  renderDeploy();showOv('deploy',true)}
 function renderDeploy(){const used=compTok(dpComp),left=TOKENS-used;$('dptok').innerHTML='◆ '+left+'/'+TOKENS;$('dpgo').disabled=!compN(dpComp);
  const box=$('dprows');box.innerHTML='';
- for(const k of UKEYS){const d=UT[k],un=SV.unlocked.includes(k),ci=counterInfo(d),r=document.createElement('div');r.className='dr'+(un?'':' lk');r.dataset.k=k;
+ for(const k of UKEYS.filter(owned)){const d=UT[k],un=true,ci=counterInfo(d),r=document.createElement('div');r.className='dr'+(un?'':' lk');r.dataset.k=k;
   const cv=mkc(d.rows[0].length+2,d.rows.length+2);cv.getContext('2d').drawImage(USPR[k],1,1);r.appendChild(cv);
-  r.title=d.name;r.insertAdjacentHTML('beforeend','<div class="inf"><span style="color:#ffd75e">◆'+d.tok+'</span> '+(un?(d.dt?'<b class="g">▲</b>'+(ci.strong.map(chip).join('')||'-'):'<b class="g">✚</b>')+' <b class="r">▼</b>'+ci.weak.map(t=>'<span class="chip">'+DTN[t]+'</span>').join('')+(ci.cant.length?' <b class="r">✕</b>'+ci.cant.map(chip).join(''):''):'🔒 '+d.unlock+' CR')+'</div>');
+  r.title=d.name;r.insertAdjacentHTML('beforeend','<div class="inf"><span style="color:#ffd75e">◆'+d.tok+'</span> '+(un?(d.dt?'<b class="g">▲</b>'+(ci.strong.map(chip).join('')||'-'):(d.cap?'⇪'+d.cap:'<b class="g">✚</b>'))+' <b class="r">▼</b>'+ci.weak.map(t=>'<span class="chip">'+DTN[t]+'</span>').join('')+(ci.cant.length?' <b class="r">✕</b>'+ci.cant.map(chip).join(''):''):'🔒 '+d.unlock+' CR')+'</div>');
   const mi=document.createElement('button'),pl=document.createElement('button'),ct=document.createElement('span');mi.textContent='-';pl.textContent='+';ct.className='ct';ct.textContent=dpComp[k]||0;mi.className='dm';pl.className='dp';
   mi.disabled=!un||!dpComp[k];pl.disabled=!un||d.tok>left;
   mi.onclick=()=>{dpComp[k]=Math.max(0,(dpComp[k]||0)-1);sfx('ui');renderDeploy()};pl.onclick=()=>{if(!un||compTok(dpComp)+d.tok>TOKENS)return;dpComp[k]=(dpComp[k]||0)+1;sfx('ui');renderDeploy()};
@@ -738,7 +773,7 @@ function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;time+=dt;
 requestAnimationFrame(frame);
 addEventListener('visibilitychange',()=>{if(document.hidden){save();if(state==='space'||state==='planet')pauseGame()}});
 addEventListener('beforeunload',save);
-window.G={genPlanet,tileAt,visibleToPlayer,hiddenFrom,seenBy,speedMod,updVision,acquire,field,TNAME,get fields(){return fields},get offFire(){return offFire},get shotLog(){return shotLog},get VR(){return VR},openDeploy,TOKENS,get state(){return state},get SV(){return SV},P,PLANETS,get bt(){return bt},get planet(){return planet},get sel(){return sel},set sel(v){sel=v},cam,get W(){return W},get H(){return H},S:()=>S,enterPlanet,retreat,command,selectAll,boxSelect,openShop,MULT,UT,ET,canHit,mkUnit,errs,blocked,field,steer,save,get trans(){return trans}};
+window.G={burnAt,TECH,techState,startRes,buyTech,addRP,loadSel,unloadSel,get techSel(){return techSel},genPlanet,tileAt,visibleToPlayer,hiddenFrom,seenBy,speedMod,updVision,acquire,field,TNAME,get fields(){return fields},get offFire(){return offFire},get shotLog(){return shotLog},get VR(){return VR},openDeploy,TOKENS,get state(){return state},get SV(){return SV},P,PLANETS,get bt(){return bt},get planet(){return planet},get sel(){return sel},set sel(v){sel=v},cam,get W(){return W},get H(){return H},S:()=>S,enterPlanet,retreat,command,selectAll,boxSelect,openShop,MULT,UT,ET,canHit,mkUnit,errs,blocked,field,steer,save,get trans(){return trans}};
 
 </script>
 </body></html>
