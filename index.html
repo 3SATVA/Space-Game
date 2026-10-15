@@ -70,6 +70,12 @@ table.ct{border-collapse:collapse;font-size:8px;margin:6px auto}table.ct th,tabl
 .dr.lk{opacity:.45}.dr canvas{width:32px;height:32px;image-rendering:pixelated;flex:none}.dr .inf{flex:1;line-height:1.7}.dr .nm{color:#ffd75e;font-size:9px}
 .dr button{min-width:0;width:36px;padding:8px 0;font-size:12px}.dr .ct{width:22px;text-align:center;font-size:12px}
 @media (max-width:600px){#panel button{padding:9px 8px;font-size:8px}#selinfo{min-width:100%;order:-1;max-height:34px}table.ct{font-size:7px}table.ct th,table.ct td{padding:3px}}
+#deploy{background:#05040e}
+#toasts{max-width:min(420px,60vw)}.toast{font-size:9px}
+@media (max-height:500px){#toasts{top:8px;left:auto;right:140px;transform:none;align-items:flex-end}#hud{font-size:8px;line-height:1.6}#banner{top:30%}}
+.ic{display:inline-flex;align-items:center;gap:3px;margin:0 3px}.ic canvas{width:20px;height:20px;image-rendering:pixelated;box-shadow:0 0 0 2px #000}
+#dpter{display:flex;flex-wrap:wrap;gap:4px;justify-content:center;font-size:8px}
+.dr .inf{font-size:8px}.legend{display:grid;grid-template-columns:auto 1fr;gap:4px 8px;font-size:8px;text-align:left;max-width:520px;align-items:center}
 </style></head><body>
 <canvas id="c"></canvas>
 <div id="hud" style="display:none"><div id="cred"></div><div id="army"></div><div id="loc"></div><div id="obj"></div><div id="haz"></div></div>
@@ -81,28 +87,25 @@ table.ct{border-collapse:collapse;font-size:8px;margin:6px auto}table.ct th,tabl
 <div id="toasts"></div><div id="banner"></div><div id="translbl"></div>
 <div id="menu" class="ov on">
  <h1>SPACE<br>CONQUEST</h1>
- <div class="small">Command a fleet across the galaxy. Invade planets with your army, destroy enemy cores and build an empire.</div>
- <button id="bplay" class="gold">Play</button>
+  <button id="bplay" class="gold">Play</button>
  <button id="bhang">Command Center</button>
  <button id="bhelp">How to play</button>
  <button id="breset" class="red">Reset save</button>
  <div class="small" id="msave"></div>
 </div>
-<div id="help" class="ov">
+<div id="help" class="ov" style="overflow:auto;justify-content:flex-start">
  <h2>HOW TO PLAY</h2>
- <div class="small">SPACE: click / tap to fly your command ship. Fly close to a planet and press INVADE. Dock at the Station (galaxy center) to unlock unit types with credits. Before each battle you draft an army with 20 deploy tokens (units do not carry over between battles).<br><br>
- BATTLE (desktop): left-drag a box or click to select (shift adds, double-click selects all of a type). Right-click ground = attack-move, right-click enemy = attack it. WASD / arrows / minimap pan the camera. Q all, X stop, Ctrl+1-5 set group, 1-5 recall.<br><br>
- BATTLE (touch): tap a unit to select it (double-tap = all of that type), ALL selects everyone. Tap ground to attack-move, tap an enemy to attack. Drag to pan; turn on BOX to drag-select. Tap the minimap to jump.<br><br>
- Destroy every enemy CORE to conquer the planet. Losing or retreating just ends the battle. Conquered planets pay credits every minute.<br><br>COUNTERS (damage multiplier vs armor):</div>
+ <div class="small" style="max-width:560px;text-align:left;line-height:1.8">&#9654; Fly to a planet, INVADE. Draft units with 20 tokens. Destroy all enemy cores.<br>&#9654; Dock at the center Station to unlock unit types. Conquered planets pay CR/min.<br>&#9654; Mouse: drag-select, right-click move/attack. Q all, X stop, Ctrl+1-5 groups, WASD pan.<br>&#9654; Touch: tap unit, tap ground/enemy. ALL, BOX, drag to pan.<br>&#9654; Fog: you only see what your units see. Air sees farther. Firing reveals a unit.</div>
+ <div id="tlegend" class="legend"></div>
  <div id="ctab"></div>
- <div class="small">Swarmers, Buzzsaws = LIGHT &middot; Brutes, Walkers, Flak Bots = ARMOR &middot; Flyers, Drones = AIR &middot; Turrets, Cores = STRUCTURE</div>
+ <div class="small">LIGHT: Swarmer, Buzzsaw &middot; ARMOR: Brute, Walker, Flak Bot &middot; AIR: Flyer, Drone &middot; STRUCT: Turret, Core</div>
  <button id="bhelpx">Back</button>
 </div>
 <div id="pause" class="ov">
  <h2>PAUSED</h2>
  <button id="bres" class="gold">Resume</button>
  <button id="bphang">Command Center</button>
- <button id="bleave" class="red">Retreat from planet</button>
+ <button id="bleave" class="red">Retreat</button>
  <button id="bmute">Sound: on</button>
  <button id="bmenu">Main menu</button>
 </div>
@@ -113,7 +116,7 @@ table.ct{border-collapse:collapse;font-size:8px;margin:6px auto}table.ct th,tabl
  <div id="ctab2" style="display:none"></div>
  <button id="bhx">Back</button>
 </div>
-<div id="deploy" class="ov"><h2 id="dpt">DEPLOY</h2><div class="small" id="dpinfo"></div><div id="dpen"></div>
+<div id="deploy" class="ov"><h2 id="dpt">DEPLOY</h2><div class="small" id="dpinfo"></div><div id="dpen"></div><div id="dpter"></div>
  <div id="dptok"></div><div id="dprows"></div>
  <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center"><button id="dpgo" class="gold">Deploy</button><button id="dpclr">Clear</button><button id="dpx">Cancel</button></div></div>
 <div id="bigmap" class="ov"><h2>GALAXY MAP</h2><canvas id="bmc" width="300" height="300"></canvas><div class="small" id="bmtxt"></div><button id="bbmx">Close</button></div>
@@ -166,6 +169,7 @@ const UT={
  medic:{name:'Repair Drone',arm:'R',hp:70,dt:null,heal:14,range:26,spd:46,r:3,tok:2,unlock:350,air:1,desc:'Flying repair drone. Heals nearby units.',rows:['..k.k..','.kkkkk.','kkwrwkk','kkrrrkk','kkwrwkk','.kkkkk.','..k.k..']},
 };
 const UKEYS=Object.keys(UT);const USPR={};for(const k of UKEYS)USPR[k]=mkSprite(UT[k].rows,TP);
+const VISR={marine:70,tank:64,aa:72,gunship:100,arty:60,medic:90,swarmer:70,brute:66,spitter:72,flyer:92,buzz:86,walker:72,flakbot:72,drone:92,turret:74,aaturret:74,core:64};
 const ET={
  swarmer:{name:'Swarmer',arm:'L',hp:40,dt:'small',dmg:5,cd:.6,range:10,spd:56,r:3,spr:'grunt'},
  brute:{name:'Brute',arm:'A',hp:260,dt:'cannon',dmg:24,cd:1.5,range:12,spd:30,r:6,spr:'brute'},
@@ -247,6 +251,38 @@ function sfx(type){if(!AC||SV.mute)return;const now=AC.currentTime;if(sfxT[type]
  o.type=P[0];o.frequency.setValueAtTime(P[1],now);o.frequency.exponentialRampToValueAtTime(P[2],now+P[3]);g.gain.setValueAtTime(P[4],now);g.gain.exponentialRampToValueAtTime(.0001,now+P[3]);o.start(now);o.stop(now+P[3]+.02)}
 
 // ================= PLANET GENERATION =================
+// ================= TERRAIN =================
+// 0 ground 1 cliff 2 hazard 3 crater 4 forest 5 mountain 6 water 7 swamp 8 road 9 ruins 10 tall grass/crystals 11 bridge/ford
+const TNAME={4:'Forest',5:'Mountains',6:'Water',7:'Swamp',8:'Road',9:'Ruins',10:'Tall grass',11:'Bridge',1:'Cliffs'};
+const TSPD={4:.7,5:.4,7:.5,8:1.35,9:.85,10:.9,11:.75};
+const TCOVER={4:.65,9:.8};
+const HIDE=t=>t===4||t===10;
+const IMPASS=t=>t===1||t===6;
+const BLOCKV=t=>t===1||t===4;
+function tcost(t,b){if(IMPASS(t))return -1;if(t===2)return (b==='lava'||b==='toxic')?45:b==='desert'?20:10;return {4:14,5:26,7:20,8:7,9:12,10:11,11:13}[t]||10}
+const TPAL={
+ forest:{lava:['#2a1a14','#4a2c20','#6e3b26'],ice:['#1d3b33','#2f5d4a','#e8f4ff'],toxic:['#2b1236','#5b2a7a','#a65bd1'],moon:['#1d3340','#2f5468','#7ec8e3'],storm:['#13281f','#24503a','#3f7a52'],desert:['#2a3d17','#4f7a2a','#86b046']},
+ grass:{lava:'#7a3b1e',ice:'#9fe6ff',toxic:'#b8ff5a',moon:'#9ad7ff',storm:'#5f8f6a',desert:'#c9b25a'},
+ water:{lava:['#251a2e','#3a2a48','#6a5590'],toxic:['#1e3d2e','#2c5a40','#7ad19a'],def:['#163d6e','#24609e','#8fd0ff']},
+};
+function terrainPix(tiles,N,tx,ty,px,py,ctx){const t=tiles[ty*N+tx],lx=px&7,ly=py&7,b=BAYER[(py&3)*4+(px&3)],{G,RK,HZ,biome,seed,fn,hn,sz}=ctx;
+ const nb=(dx,dy)=>{const x=tx+dx,y=ty+dy;return x<0||y<0||x>=N||y>=N?t:tiles[y*N+x]};
+ const gr=()=>{const v=fn(px/sz,py/sz)+b*.18;return v<.4?G[2]:v<.62?G[0]:G[1]};
+ if(t===1){const above=nb(0,-1)!==1,below=nb(0,1)!==1;if(above&&ly<2)return RK[2];if(below&&ly>5)return RK[0].map(v=>v*.7);return hash2(px>>1,py>>1,seed)<.1?RK[1]:RK[0]}
+ if(t===2){const v=hn(px/sz,py/sz)+Math.sin((px+py*.6)/5)*.05+b*.1;let c=v>.5?HZ[1]:HZ[0];if((nb(-1,0)!==2||nb(1,0)!==2||nb(0,-1)!==2||nb(0,1)!==2)&&hash2(px,py,3)<.3)c=G[0];return c}
+ if(t===4){const F=TPAL.forest[biome].map(hex);const j=hash2(tx,ty,seed)*2|0;const trees=[[2+j,3],[6-j,6],[6,1+j]];for(const [cx,cy] of trees){const dx=lx-cx,dy=ly-cy;if(dx*dx+dy*dy<=4.5)return dx+dy<-1?F[2]:F[1]}return F[0]}
+ if(t===5){const M=RK.map(c=>c.map(v=>Math.min(255,v*1.35+25)));const off=hash2(tx,ty,seed+1)<.5?0:1;const h=ly-Math.abs(lx-3.5-off*.5)*1.4;if(h>=0){if(ly<2&&Math.abs(lx-3.5)<1)return [235,235,240];return lx<4?M[2]:M[1]}return M[0].map(v=>v*.85)}
+ if(t===6){const Wc=(TPAL.water[biome]||TPAL.water.def).map(hex);if(nb(-1,0)!==6&&lx===0||nb(1,0)!==6&&lx===7||nb(0,-1)!==6&&ly===0||nb(0,1)!==6&&ly===7)return Wc[1];return ((px+(py>>2)*3)%9===0&&(py&3)===1)?Wc[2]:Wc[0]}
+ if(t===7){if(hn(px/sz*2,py/sz*2)+b*.15>.58)return [47,79,90];if(hash2(px,py,seed+7)<.06)return [30,40,20];return [58,74,42]}
+ if(t===8){if((nb(-1,0)!==8&&nb(-1,0)!==11&&lx===0)||(nb(1,0)!==8&&nb(1,0)!==11&&lx===7)||(nb(0,-1)!==8&&nb(0,-1)!==11&&ly===0)||(nb(0,1)!==8&&nb(0,1)!==11&&ly===7))return [92,86,74];return hash2(px,py,seed+3)<.12?[170,160,140]:[138,128,112]}
+ if(t===9){const wall=(lx<3&&ly>=4&&ly<7)||(lx>=5&&ly<3)||(lx===4&&ly===5);if(wall)return ly===4||ly===0?[160,160,168]:[110,110,120];return gr().map(v=>v*.9)}
+ if(t===10){const base=gr().map(v=>v*.82);const gc=hex(TPAL.grass[biome]);if((biome==='ice'||biome==='moon')){const d=Math.abs(lx-3)+Math.abs(ly-3);return d<=2&&(lx+ly+tx)%2===0?gc:d===3&&ly<3?gc.map(v=>v*.7):base}return ((px*7+py*3)%5===0&&ly%3!==2)?gc:((px*7+py*3)%5===1&&ly%3===0)?gc.map(v=>v*.7):base}
+ if(t===11){if(lx===0||lx===7)return [70,46,26];return ly%3===0?[90,58,32]:[128,86,48]}
+ let c=gr();if(t===3){const cc=hash2(tx,ty,9)<.5?[78,78,90]:[95,95,108];c=c.map((q,k)=>lerp(q,cc[k],.35))}
+ if(hash2(px,py,seed)<.012)c=G[1].map(q=>Math.min(255,q*1.25));if(ty>0&&nb(0,-1)===1&&ly<3)c=c.map(q=>q*.62);return c}
+function tileIcon(t,biome){const N=3,tiles=new Uint8Array(9).fill(t),c=mkc(16,16),g=c.getContext('2d'),im=g.createImageData(16,16),B=BIOMES[biome],R=mulberry(5),ctx={G:B.ground.map(hex),RK:B.rock.map(hex),HZ:B.haz.map(hex),biome,seed:5,fn:makeNoise(R,4),hn:makeNoise(R,4),sz:24};
+ for(let y=0;y<16;y++)for(let x=0;x<16;x++){const col=terrainPix(tiles,N,1,1,8+x,8+y,ctx),i=(y*16+x)*4;im.data[i]=col[0];im.data[i+1]=col[1];im.data[i+2]=col[2];im.data[i+3]=255}g.putImageData(im,0,0);return c}
+
 const T=8;
 function genPlanet(p){
  const R=mulberry(p.seed),N=96+p.tier*8,B=BIOMES[p.biome];
@@ -265,7 +301,25 @@ function genPlanet(p){
  for(const b of bases){if(!reach[b.y*N+b.x]){let x=b.x,y=b.y;const steps=Math.ceil(dist(x,y,cx,cy));for(let s=0;s<=steps;s++){const t=s/steps;carve(lerp(b.x,cx,t)+Math.sin(t*9)*2,lerp(b.y,cy,t),1.6,true)}reach=flood()}}
  // isolated pockets become rock (cleaner map)
  for(let k=0;k<N*N;k++)if(!reach[k]&&tiles[k]!==1)tiles[k]=1;
- const isOpen=(x,y)=>x>=0&&y>=0&&x<N&&y<N&&tiles[y*N+x]!==1;
+ // ---- terrain overlay (seeded mix)
+ const TR=mulberry(p.seed^0x5bd1),PROF=['forest','mountain','river','swamp','ruins','grass','mixed'],prof=PROF[Math.floor(TR()*PROF.length)];
+ const cov={};for(const t of [4,5,7,9,10])cov[t]=TR()<.6?.02+TR()*.07:0;let rivers=TR()<.3?1:0;
+ ({forest:()=>cov[4]=.28+TR()*.12,mountain:()=>cov[5]=.22+TR()*.1,river:()=>rivers=2+(TR()<.5?1:0),swamp:()=>cov[7]=.22+TR()*.1,ruins:()=>cov[9]=.14+TR()*.08,grass:()=>cov[10]=.26+TR()*.12,mixed:()=>{cov[4]=.12;cov[5]=.1;cov[10]=.08;rivers=1}})[prof]();
+ if(p.biome==='moon')cov[7]*=.3;
+ const nfs={5:makeNoise(TR,7),4:makeNoise(TR,10),7:makeNoise(TR,9),10:makeNoise(TR,12),9:makeNoise(TR,22)};
+ const nearBase=(x,y,r)=>dist(x,y,cx,cy)<r+1||bases.some(b=>dist(x,y,b.x,b.y)<r);
+ const cand=[];for(let y=2;y<N-2;y++)for(let x=2;x<N-2;x++){const k=y*N+x;if((tiles[k]===0||tiles[k]===3)&&!nearBase(x,y,6))cand.push(k)}
+ const nOpen=cand.length;
+ for(const t of [5,4,7,10,9]){if(!cov[t])continue;const free=cand.filter(k=>tiles[k]===0||tiles[k]===3),vals=free.map(k=>nfs[t]((k%N)/N,((k/N)|0)/N)),sorted=vals.slice().sort((a,b)=>b-a),want=Math.min(free.length-1,Math.floor(cov[t]*nOpen));if(want<=0)continue;const thr=sorted[want];free.forEach((k,i)=>{if(vals[i]>thr)tiles[k]=t})}
+ for(let r=0;r<rivers;r++){const side=Math.floor(TR()*4);let x,y,a;if(side===0){x=2;y=TR()*N;a=0}else if(side===1){x=N-3;y=TR()*N;a=Math.PI}else if(side===2){x=TR()*N;y=2;a=Math.PI/2}else{x=TR()*N;y=N-3;a=-Math.PI/2}
+  const w=1.4+TR()*1.3;let step=0,ford=0;while(x>=1&&y>=1&&x<N-1&&y<N-1&&step<N*3){step++;a+=(TR()-.5)*.5;x+=Math.cos(a);y+=Math.sin(a);if(step%26===0)ford=4;
+   for(let j=-2;j<=2;j++)for(let i=-2;i<=2;i++){if(i*i+j*j>w*w+.5)continue;const xx=Math.round(x+i),yy=Math.round(y+j);if(xx<2||yy<2||xx>=N-2||yy>=N-2||nearBase(xx,yy,6))continue;const k=yy*N+xx;if(tiles[k]===1||tiles[k]===2)continue;tiles[k]=ford>0?11:6}if(ford>0)ford--}}
+ // roads pad->bases (also guarantees ground access)
+ for(const b of bases){const steps=Math.ceil(dist(b.x,b.y,cx,cy)),ph=TR()*6;for(let s=0;s<=steps;s++){const t=s/steps,x=lerp(cx,b.x,t)+Math.sin(t*Math.PI*2+ph)*3*Math.sin(t*Math.PI),y=lerp(cy,b.y,t)+Math.cos(t*Math.PI*2+ph)*3*Math.sin(t*Math.PI);
+  for(let j=-1;j<=1;j++)for(let i=-1;i<=1;i++){if(Math.abs(i)+Math.abs(j)>1)continue;const xx=Math.round(x+i),yy=Math.round(y+j);if(xx<2||yy<2||xx>=N-2||yy>=N-2)continue;const k=yy*N+xx;const o=tiles[k];if(dist(xx,yy,cx,cy)<5||dist(xx,yy,b.x,b.y)<4)continue;tiles[k]=o===6||o===11?11:8}}}
+ const reach2=(()=>{const r=new Uint8Array(N*N),q=[cy*N+cx];r[q[0]]=1;while(q.length){const k=q.pop(),x=k%N,y=(k/N)|0;for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const nk=(y+dy)*N+x+dx;if(!r[nk]&&!IMPASS(tiles[nk])){r[nk]=1;q.push(nk)}}}return r})();
+ const mix={};for(let k=0;k<N*N;k++){const t=tiles[k];if(t>=4)mix[t]=(mix[t]||0)+1}const open=tiles.filter(t=>t!==1).length;for(const t in mix)mix[t]=Math.round(mix[t]/open*100);
+ const isOpen=(x,y)=>x>=0&&y>=0&&x<N&&y<N&&reach2[y*N+x]&&!IMPASS(tiles[y*N+x]);
  const ens=[],add=(type,tx,ty)=>ens.push({type,x:tx*T+T/2,y:ty*T+T/2}),pool=poolFor(p),pick=()=>pool[Math.floor(R()*pool.length)];
  bases.forEach(b=>{add('core',b.x,b.y);const nt=p.tier<2?1:2+Math.min(2,Math.floor(p.tier/2));for(let i=0;i<nt;i++){const a=i/nt*TAU+.4,tx=Math.round(b.x+Math.cos(a)*4),ty=Math.round(b.y+Math.sin(a)*4);if(isOpen(tx,ty))add(i%2?'aaturret':'turret',tx,ty)}
   for(let i=0;i<2+Math.floor(p.tier/2);i++){const a=R()*TAU,tx=Math.round(b.x+Math.cos(a)*7),ty=Math.round(b.y+Math.sin(a)*7);if(isOpen(tx,ty))add(pick(),tx,ty)}});
@@ -273,24 +327,17 @@ function genPlanet(p){
  const gas=[];if(p.biome==='toxic')for(let i=0;i<7;i++)gas.push({x:R()*N*T,y:R()*N*T,r:26+R()*20,vx:(R()-.5)*12,vy:(R()-.5)*12});
  // render terrain
  const sz=N*T,c=mkc(sz,sz),g=c.getContext('2d'),im=g.createImageData(sz,sz),D=im.data,fn=makeNoise(R,40),hn=makeNoise(R,22);
- const G=B.ground.map(hex),RK=B.rock.map(hex),HZ=B.haz.map(hex),CR=[[78,78,90],[95,95,108]];
- for(let py=0;py<sz;py++){const ty=py>>3;for(let px=0;px<sz;px++){const tx=px>>3,t=tiles[ty*N+tx],b=BAYER[(py&3)*4+(px&3)],i=(py*sz+px)*4;let col;
-  if(t===1){const above=ty>0&&tiles[(ty-1)*N+tx]!==1,below=ty<N-1&&tiles[(ty+1)*N+tx]!==1;
-   if(above&&(py&7)<2)col=RK[2];else if(below&&(py&7)>5)col=RK[0].map(v=>v*.7);else{col=hash2(px>>1,py>>1,p.seed)<.1?RK[1]:RK[0]}}
-  else if(t===2){const v=hn(px/sz,py/sz)+Math.sin((px+py*.6)/5)*.05+b*.1;col=v>.5?HZ[1]:HZ[0];const edge=(tiles[ty*N+tx-1]!==2||tiles[ty*N+tx+1]!==2||tiles[(ty-1)*N+tx]!==2||tiles[(ty+1)*N+tx]!==2);if(edge&&hash2(px,py,3)<.3)col=G[0]}
-  else{const v=fn(px/sz,py/sz)+b*.18;col=v<.4?G[2]:v<.62?G[0]:G[1];if(t===3){const cc=hash2(tx,ty,9)<.5?CR[0]:CR[1];col=col.map((q,k)=>lerp(q,cc[k],.35))}
-   if(hash2(px,py,p.seed)<.012)col=G[1].map(q=>Math.min(255,q*1.25));
-   if(ty>0&&tiles[(ty-1)*N+tx]===1&&(py&7)<3)col=col.map(q=>q*.62)}
-  D[i]=col[0];D[i+1]=col[1];D[i+2]=col[2];D[i+3]=255}}
+ const tctx={G:B.ground.map(hex),RK:B.rock.map(hex),HZ:B.haz.map(hex),biome:p.biome,seed:p.seed,fn,hn,sz};
+ for(let py=0;py<sz;py++){const ty=py>>3;for(let px=0;px<sz;px++){const col=terrainPix(tiles,N,px>>3,ty,px,py,tctx),i=(py*sz+px)*4;D[i]=col[0];D[i+1]=col[1];D[i+2]=col[2];D[i+3]=255}}
  g.putImageData(im,0,0);
  // decorations
  const deco={lava:['#ff7a1f','#2b1712'],ice:['#ffffff','#7fb6dd'],toxic:['#c8ff6a','#5e2a7a'],moon:['#9a9aa8','#45454f'],storm:['#6a8fd6','#1d2440'],desert:['#5e8a3a','#8a5a32']}[p.biome];
  for(let i=0;i<N*N/14;i++){const tx=Math.floor(R()*N),ty=Math.floor(R()*N);if(tiles[ty*N+tx]!==0)continue;const x=tx*T+Math.floor(R()*6),y=ty*T+Math.floor(R()*6);g.fillStyle=deco[1];g.fillRect(x,y+2,3,1);g.fillStyle=deco[0];if(R()<.5){g.fillRect(x+1,y,1,2)}else{g.fillRect(x,y+1,1,1);g.fillRect(x+2,y,1,2)}}
  // landing pad
  const lx=cx*T,ly=cy*T;g.fillStyle='#2b2d42';g.fillRect(lx-20,ly-20,40,40);g.fillStyle='#4a4e69';g.fillRect(lx-18,ly-18,36,36);g.fillStyle='#ffd75e';for(let k=-18;k<18;k+=6){g.fillRect(lx+k,ly-18,3,2);g.fillRect(lx+k,ly+16,3,2)}g.fillStyle='#ffffff';g.fillRect(lx-6,ly-8,2,16);g.fillRect(lx+4,ly-8,2,16);g.fillRect(lx-6,ly-1,12,2);
- return{N,tiles,img:c,ens,gas,pad:{x:lx,y:ly},bases:bases.length,storm:{t:8,on:0,strikes:[]},p,sz}}
+ return{N,tiles,img:c,ens,gas,mix,prof,vis:new Uint8Array(N*N),seen:new Uint8Array(N*N),pad:{x:lx,y:ly},bases:bases.length,storm:{t:8,on:0,strikes:[]},p,sz}}
 function tileAt(wx,wy){if(!planet)return 0;const tx=Math.floor(wx/T),ty=Math.floor(wy/T),N=planet.N;if(tx<0||ty<0||tx>=N||ty>=N)return 1;return planet.tiles[ty*N+tx]}
-function solid(wx,wy){return tileAt(wx,wy)===1}
+function solid(wx,wy){return IMPASS(tileAt(wx,wy))}
 function blocked(x,y,r){return solid(x-r,y-r)||solid(x+r,y-r)||solid(x-r,y+r)||solid(x+r,y+r)||solid(x,y-r)||solid(x,y+r)||solid(x-r,y)||solid(x+r,y)}
 function moveCirc(o,dx,dy){if(!planet){o.x+=dx;o.y+=dy;return}let hit=false;if(!blocked(o.x+dx,o.y,o.r)){o.x+=dx}else{o.vx*=-.2;hit=true}if(!blocked(o.x,o.y+dy,o.r)){o.y+=dy}else{o.vy*=-.2;hit=true}return hit}
 function rayLen(x,y,a,max){const c=Math.cos(a),s=Math.sin(a);for(let d=0;d<max;d+=3){if(solid(x+c*d,y+s*d))return d}return max}
@@ -307,7 +354,7 @@ function drawTrans(){const p=trans.phase===0?trans.t/.7:1-trans.t/.8,bs=Math.max
  if(p>.6){X.fillStyle='#ffd75e';for(let i=0;i<40;i++){const a=hash2(i,0,3)*TAU,r=((hash2(i,1,3)+trans.t*1.5)%1)*md;X.fillRect(Math.round(cx+Math.cos(a)*r),Math.round(cy+Math.sin(a)*r),Math.ceil(r/40)+1,1)}}}
 
 // ================= CANVAS / INPUT =================
-const C=$('c'),X=C.getContext('2d');let S=3,W=0,H=0,VR=70;const rng=u=>Math.min(u.d.range,VR);
+const C=$('c'),X=C.getContext('2d');let S=3,W=0,H=0,VR=70;const rng=u=>Math.min(u.d.range*(planet&&!u.air&&tileAt(u.x,u.y)===5?1.15:1),VR);
 function resize(){const m=Math.min(innerWidth,innerHeight);S=Math.max(2,Math.round(m/155*2)/2);W=Math.ceil(innerWidth/S);H=Math.ceil(innerHeight/S);VR=Math.floor(Math.min(W,H)/2*.85);C.width=W;C.height=H;X.imageSmoothingEnabled=false}
 addEventListener('resize',resize);resize();
 const keys={};let touchMode=false,boxMode=false;
@@ -364,11 +411,11 @@ function updateSpace(dt){let mx=0,my=0;if(keys.KeyW||keys.ArrowUp)my--;if(keys.K
  if(sp>30&&Math.random()<.9)for(const k of [-1,1])parts.push({x:P.x-Math.cos(P.a)*8+Math.cos(P.a+Math.PI/2)*k*4,y:P.y-Math.sin(P.a)*8+Math.sin(P.a+Math.PI/2)*k*4,vx:-Math.cos(P.a)*30,vy:-Math.sin(P.a)*30,life:.3,max:.3,col:'#ffb703',sz:1});
  const R=Math.hypot(P.x,P.y);if(R>WORLD){P.x*=WORLD/R;P.y*=WORLD/R;P.tx=null}
  for(const p of PLANETS){const d=dist(P.x,P.y,p.x,p.y);if(d<p.r+6){const a=Math.atan2(P.y-p.y,P.x-p.x);P.x=p.x+Math.cos(a)*(p.r+6);P.y=p.y+Math.sin(a)*(p.r+6)}
-  if(!SV.disc[p.id]&&d<900){SV.disc[p.id]=1;save();toast('NEW PLANET DISCOVERED<br><span style="color:#ffd75e">'+p.name+'</span> - Tier '+p.tier+' '+BIOMES[p.biome].name+' ('+(p.fac==='alien'?'Aliens':'Robots')+')');sfx('coin')}}
+  if(!SV.disc[p.id]&&d<900){SV.disc[p.id]=1;save();toast('NEW: <span style="color:#ffd75e">'+p.name+'</span> T'+p.tier);sfx('coin')}}
  for(const a of asteroids){a.x+=a.vx*dt;a.y+=a.vy*dt}
  let best=null,bd=1e9;for(const p of PLANETS){const d=dist(P.x,P.y,p.x,p.y)-p.r;if(d<bd){bd=d;best=p}}
- if(bd<60){const B=BIOMES[best.biome];setPrompt('INVADE '+best.name.toUpperCase()+' [E]','Tier '+best.tier+' '+B.name+' - '+(best.fac==='alien'?'Aliens':'Robots')+' - '+(SV.conq[best.id]?'CONQUERED (raid +'+Math.round(best.reward*.25/10)*10+')':best.reward+' CR')+' - '+TOKENS+' deploy tokens',()=>openDeploy(best))}
- else if(dist(P.x,P.y,0,0)<80)setPrompt('DOCK: COMMAND CENTER [E]','Unlock new unit types',()=>openShop('space'));
+ if(bd<60){const B=BIOMES[best.biome];setPrompt('INVADE '+best.name.toUpperCase(),'T'+best.tier+' · '+(SV.conq[best.id]?'★ +'+Math.round(best.reward*.25/10)*10:best.reward)+' CR',()=>openDeploy(best))}
+ else if(dist(P.x,P.y,0,0)<80)setPrompt('DOCK [E]','',()=>openShop('space'));
  else setPrompt(null);
  SV.px=P.x;SV.py=P.y}
 function income(dt){SV.incT=(SV.incT||0)+dt;if(SV.incT>=60){SV.incT=0;const ids=Object.keys(SV.conq);if(ids.length){const n=ids.reduce((s,i)=>s+PLANETS[i].tier*15,0);addCredits(n);toast('+'+n+' CR income from '+ids.length+' conquered planet'+(ids.length>1?'s':''))}save()}}
@@ -382,40 +429,59 @@ function enterPlanet(p,comp){comp=comp||SV.comp;setPrompt(null);transition('Inva
  for(const s of planet.ens)bt.units.push(mkUnit(1,s.type,s.x,s.y));
  const list=[];for(const k of UKEYS)for(let i=0;i<(comp[k]||0);i++)list.push(k);
  const spots=spotsAround(planet.pad.x,planet.pad.y,list.length,0,6);list.forEach((k,i)=>{const s=spots[i]||planet.pad;bt.units.push(mkUnit(0,k,s.x,s.y))});
+ {const N=planet.N;for(const u of bt.units)if(u.k==='core'){const gx=Math.floor(u.x/T),gy=Math.floor(u.y/T);for(let j=-4;j<=4;j++)for(let i=-4;i<=4;i++){const x=gx+i,y=gy+j;if(x>=0&&y>=0&&x<N&&y<N&&i*i+j*j<=16)planet.seen[y*N+x]=1}}fogT=0;fogC=null}
  sel=bt.units.filter(u=>!u.team);groups={};cam.x=planet.pad.x-W/2;cam.y=planet.pad.y-H/2;parts=[];state='planet';
- const B=BIOMES[p.biome];setTimeout(()=>banner(p.name.toUpperCase(),'Destroy '+planet.bases+' enemy core'+(planet.bases>1?'s':''),3),600);toast(B.hint+'<br>'+(touchMode?'Tap units to select, tap ground to move/attack.':'Drag to select, right-click to move/attack.'),5000)})}
+ const B=BIOMES[p.biome];setTimeout(()=>banner(p.name.toUpperCase(),'⬢ x'+planet.bases,2),600);0})}
 function leaveBattle(){planet=null;bt=null;sel=[];parts=[];const p=curP;curP=null;state='space';P.x=p.x+Math.cos(-2.4)*(p.r+40);P.y=p.y+Math.sin(-2.4)*(p.r+40);P.vx=P.vy=0;P.tx=null;save()}
-function retreat(){if(!bt||trans)return;const n=bt.units.filter(u=>!u.team&&u.alive).length,bt0won=bt.won;transition(bt.won?'Launching...':'Retreating...',()=>{leaveBattle();toast(bt0won?'Planet secured':'Battle ended - '+n+' units withdrew')})}
+function retreat(){if(!bt||trans)return;const n=bt.units.filter(u=>!u.team&&u.alive).length,bt0won=bt.won;transition(bt.won?'Launching...':'Retreating...',()=>{leaveBattle();0})}
 
 // flow fields
 const fields=new Map();
-function openTileNear(gx,gy){const N=planet.N;for(let r=0;r<12;r++)for(let j=-r;j<=r;j++)for(let i=-r;i<=r;i++){const x=gx+i,y=gy+j;if(x>=0&&y>=0&&x<N&&y<N&&planet.tiles[y*N+x]!==1)return y*N+x}return gy*N+gx}
-function field(tx,ty){const N=planet.N,gx=clamp(Math.floor(tx/T),0,N-1),gy=clamp(Math.floor(ty/T),0,N-1);let key=gy*N+gx;if(planet.tiles[key]===1)key=openTileNear(gx,gy);
+function openTileNear(gx,gy){const N=planet.N;for(let r=0;r<12;r++)for(let j=-r;j<=r;j++)for(let i=-r;i<=r;i++){const x=gx+i,y=gy+j;if(x>=0&&y>=0&&x<N&&y<N&&!IMPASS(planet.tiles[y*N+x]))return y*N+x}return gy*N+gx}
+function field(tx,ty){const N=planet.N,gx=clamp(Math.floor(tx/T),0,N-1),gy=clamp(Math.floor(ty/T),0,N-1);let key=gy*N+gx;if(IMPASS(planet.tiles[key]))key=openTileNear(gx,gy);
  let f=fields.get(key);if(f){fields.delete(key);fields.set(key,f);return f}
- f=new Int32Array(N*N).fill(-1);const q=new Int32Array(N*N),tl=planet.tiles;let h=0,t=0;f[key]=0;q[t++]=key;
- while(h<t){const k=q[h++],x=k%N,v=f[k]+1;const nb=[x>0?k-1:-1,x<N-1?k+1:-1,k-N,k+N];for(const n of nb){if(n<0||n>=N*N||f[n]>=0||tl[n]===1)continue;f[n]=v;q[t++]=n}}
+ f=new Int32Array(N*N).fill(-1);const tl=planet.tiles,b=curP.biome,Hp=[];
+ const push=v=>{Hp.push(v);let i=Hp.length-1;while(i>0){const q=(i-1)>>1;if(Hp[q]<=Hp[i])break;const t=Hp[q];Hp[q]=Hp[i];Hp[i]=t;i=q}};
+ const pop=()=>{const top=Hp[0],last=Hp.pop();if(Hp.length){Hp[0]=last;let i=0;for(;;){const l=2*i+1,r=l+1;let m=i;if(l<Hp.length&&Hp[l]<Hp[m])m=l;if(r<Hp.length&&Hp[r]<Hp[m])m=r;if(m===i)break;const t=Hp[m];Hp[m]=Hp[i];Hp[i]=t;i=m}}return top};
+ f[key]=0;push(key);
+ while(Hp.length){const v=pop(),k=v%65536,c=(v-k)/65536;if(c>f[k])continue;const x=k%N;const nb=[x>0?k-1:-1,x<N-1?k+1:-1,k-N,k+N];for(const n of nb){if(n<0||n>=N*N)continue;const cs=tcost(tl[n],b);if(cs<0)continue;const nc=c+cs;if(f[n]<0||nc<f[n]){f[n]=nc;push(nc*65536+n)}}}
  fields.set(key,f);if(fields.size>60)fields.delete(fields.keys().next().value);return f}
 function flowDir(u,tx,ty){const f=field(tx,ty),N=planet.N,cx=Math.floor(u.x/T),cy=Math.floor(u.y/T),tl=planet.tiles;const here=f[cy*N+cx];if(here<=0)return[tx-u.x,ty-u.y];
- let best=here,bx=0,by=0;for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){if(!dx&&!dy)continue;const x=cx+dx,y=cy+dy;if(x<0||y<0||x>=N||y>=N)continue;const v=f[y*N+x];if(v<0)continue;if(dx&&dy&&(tl[cy*N+x]===1||tl[y*N+cx]===1))continue;const sc=v-(dx&&dy?.1:0);if(sc<best){best=sc;bx=dx;by=dy}}
+ let best=here,bx=0,by=0;for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){if(!dx&&!dy)continue;const x=cx+dx,y=cy+dy;if(x<0||y<0||x>=N||y>=N)continue;const v=f[y*N+x];if(v<0)continue;if(dx&&dy&&(IMPASS(tl[cy*N+x])||IMPASS(tl[y*N+cx])))continue;const sc=v-(dx&&dy?2:0);if(sc<best){best=sc;bx=dx;by=dy}}
  if(!bx&&!by)return[tx-u.x,ty-u.y];return[(cx+bx+.5)*T-u.x,(cy+by+.5)*T-u.y]}
-function losClear(x1,y1,x2,y2){const d=dist(x1,y1,x2,y2),n=Math.ceil(d/4);for(let i=1;i<n;i++){const x=lerp(x1,x2,i/n),y=lerp(y1,y2,i/n);if(blocked(x,y,4))return false}return true}
+function losClear(x1,y1,x2,y2){const d=dist(x1,y1,x2,y2),n=Math.ceil(d/4),b=curP.biome;for(let i=1;i<n;i++){const x=lerp(x1,x2,i/n),y=lerp(y1,y2,i/n);if(blocked(x,y,4))return false;const c=tcost(tileAt(x,y),b);if(c>12||c<0)return false}return true}
+// ---- vision / fog
+const tileOf=(x,y)=>{const N=planet.N;return clamp(Math.floor(y/T),0,N-1)*N+clamp(Math.floor(x/T),0,N-1)};
+function visR(u){return u.d.vis*(!u.air&&tileAt(u.x,u.y)===5?1.3:1)}
+function losTiles(x0,y0,x1,y1){const tl=planet.tiles,N=planet.N;let dx=Math.abs(x1-x0),dy=-Math.abs(y1-y0),sx=x0<x1?1:-1,sy=y0<y1?1:-1,e=dx+dy,x=x0,y=y0;for(;;){if(x===x1&&y===y1)return true;if(!(x===x0&&y===y0)&&BLOCKV(tl[y*N+x]))return false;const e2=2*e;if(e2>=dy){e+=dy;x+=sx}if(e2<=dx){e+=dx;y+=sy}}}
+function hiddenFrom(t,team){if(t.air||!t.d.spd||t.revealT>0)return false;if(!HIDE(tileAt(t.x,t.y)))return false;for(const o of bt.units)if(o.alive&&o.team===team&&Math.abs(o.x-t.x)<14&&Math.abs(o.y-t.y)<14)return false;return true}
+function seenBy(v,t){if(v.team===0)return !!planet.vis[tileOf(t.x,t.y)]&&!hiddenFrom(t,0);
+ if(dist(v.x,v.y,t.x,t.y)>visR(v))return false;if(hiddenFrom(t,1))return false;if(v.air||t.air)return true;return losTiles(Math.floor(v.x/T),Math.floor(v.y/T),Math.floor(t.x/T),Math.floor(t.y/T))}
+const visibleToPlayer=t=>t.team===0||(!!planet.vis[tileOf(t.x,t.y)]&&!hiddenFrom(t,0));
+let fogC=null,fogT=0;
+function updVision(){const pl=planet,N=pl.N,vis=pl.vis,seen=pl.seen;vis.fill(0);
+ for(const u of bt.units){if(!u.alive||u.team)continue;const r=visR(u)/T,ux=Math.floor(u.x/T),uy=Math.floor(u.y/T),ir=Math.ceil(r);
+  for(let dy=-ir;dy<=ir;dy++)for(let dx=-ir;dx<=ir;dx++){if(dx*dx+dy*dy>r*r)continue;const x=ux+dx,y=uy+dy;if(x<0||y<0||x>=N||y>=N)continue;const k=y*N+x;if(vis[k])continue;if(u.air||losTiles(ux,uy,x,y)){vis[k]=1;seen[k]=1}}}
+ for(const u of bt.units)if(u.team&&!u.d.spd&&seen[tileOf(u.x,u.y)])u.seenS=1;
+ if(!fogC||fogC.width!==N){fogC=mkc(N,N);fogC.im=fogC.getContext('2d').createImageData(N,N)}
+ const D=fogC.im.data;for(let k=0;k<N*N;k++){D[k*4+3]=vis[k]?0:seen[k]?150:255}fogC.getContext('2d').putImageData(fogC.im,0,0)}
 
-function speedMod(u){const b=curP.biome;let m=1;if(b==='desert'&&!u.air&&tileAt(u.x,u.y)===2)m*=.5;if(b==='storm'&&planet.storm.on>0)m*=.65;if(b==='moon')m*=u.air?1.3:1.1;return m}
+function speedMod(u){const b=curP.biome;let m=1;if(!u.air){const t=tileAt(u.x,u.y);if(TSPD[t])m*=TSPD[t]}if(b==='desert'&&!u.air&&tileAt(u.x,u.y)===2)m*=.5;if(b==='storm'&&planet.storm.on>0)m*=.65;if(b==='moon')m*=u.air?1.3:1.1;return m}
 function slip(u){if(u.air)return 1;const b=curP.biome;if(b==='ice')return tileAt(u.x,u.y)===2?.05:.35;if(b==='moon')return .45;return 1}
 function steer(u,tx,ty,dt){let dx,dy;
  if(!u.air){u.losT-=dt;if(u.losT<=0){u.losT=.3+Math.random()*.2;u.los=u.stuck<=0&&losClear(u.x,u.y,tx,ty)}}
  if(u.air||u.los){dx=tx-u.x;dy=ty-u.y}else{[dx,dy]=flowDir(u,tx,ty)}
  const l=Math.hypot(dx,dy)||1,sp=Math.min(u.d.spd,!u.tgt&&u.order&&u.order.spd||1e9)*speedMod(u),k=Math.min(1,dt*8*slip(u));u.vx=lerp(u.vx,dx/l*sp,k);u.vy=lerp(u.vy,dy/l*sp,k);u.wantMove=true;if(!u.tgt||u.d.heal)u.a=Math.atan2(u.vy,u.vx)}
 function brake(u,dt){const k=Math.min(1,dt*8*slip(u));u.vx=lerp(u.vx,0,k);u.vy=lerp(u.vy,0,k)}
-function acquire(u,rad){let best=null,bs=rad;for(const o of bt.units){if(!o.alive||o.team===u.team||!canHit(u,o))continue;const d=dist(u.x,u.y,o.x,o.y);if(d>rad||(u.d.minr&&d<u.d.minr))continue;const sc=d+(o.d.arm==='S'&&u.d.dt!=='siege'?40:0)-MULT[u.d.dt][o.d.arm]*40;if(sc<bs){bs=sc;best=o}}return best}
-function updUnit(u,dt){const d=u.d;u.cd-=dt;u.flash-=dt;u.acqT-=dt;u.wantMove=false;
+function acquire(u,rad){let best=null,bs=rad;for(const o of bt.units){if(!o.alive||o.team===u.team||!canHit(u,o))continue;const d=dist(u.x,u.y,o.x,o.y);if(d>rad||(u.d.minr&&d<u.d.minr))continue;if(!seenBy(u,o))continue;const sc=d+(o.d.arm==='S'&&u.d.dt!=='siege'?40:0)-MULT[u.d.dt][o.d.arm]*40;if(sc<bs){bs=sc;best=o}}return best}
+function updUnit(u,dt){const d=u.d;u.cd-=dt;u.flash-=dt;u.acqT-=dt;u.revealT=(u.revealT||0)-dt;u.wantMove=false;
  if(!u.air&&d.spd){const b=curP.biome,t=tileAt(u.x,u.y);if((b==='lava'||b==='toxic')&&t===2)hzDmg(u,10*dt);if(b==='toxic')for(const g of planet.gas)if(dist(g.x,g.y,u.x,u.y)<g.r)hzDmg(u,5*dt);if(!u.alive)return}
  if(u.k==='core'){coreTick(u,dt);return}
  if(d.heal){updHealer(u,dt);return}
  if(u.tgt&&(!u.tgt.alive))u.tgt=null;
  const o=u.order;
- if(o&&o.type==='attack'){if(o.t.alive)u.tgt=o.t;else{u.order=null;u.tgt=null}}
- else if(u.acqT<=0){u.acqT=.35;if(!(o&&o.type==='move')){const rad=u.team?(d.spd?Math.min(rng(u)+30,VR):rng(u)):rng(u)+24;const n=acquire(u,rad);if(n&&(!u.tgt||dist(u.x,u.y,n.x,n.y)<dist(u.x,u.y,u.tgt.x,u.tgt.y)-25))u.tgt=n}}
+ if(o&&o.type==='attack'){if(o.t.alive&&visibleToPlayer(o.t))u.tgt=o.t;else{u.order=null;u.tgt=null}}
+ else if(u.acqT<=0){u.acqT=.35;if(u.tgt&&!seenBy(u,u.tgt))u.tgt=null;if(!(o&&o.type==='move')){const rad=u.team?(d.spd?Math.min(rng(u)+30,VR):rng(u)):rng(u)+24;const n=acquire(u,rad);if(n&&(!u.tgt||dist(u.x,u.y,n.x,n.y)<dist(u.x,u.y,u.tgt.x,u.tgt.y)-25))u.tgt=n}}
  if(o&&o.type==='move')u.tgt=null;
  if(u.team&&d.spd&&u.tgt&&dist(u.x,u.y,u.home.x,u.home.y)>320){u.tgt=null;u.returning=true}
  if(!u.team&&u.tgt&&!o&&dist(u.x,u.y,u.tgt.x,u.tgt.y)>rng(u)+60)u.tgt=null;
@@ -436,22 +502,22 @@ function updHealer(u,dt){let best=null,bd=150;for(const o of bt.units)if(o.alive
 function coreTick(u,dt){u.ang=(u.ang||0)+dt;u.spawnT=(u.spawnT??15)-dt;if(u.spawnT<=0){u.spawnT=Math.max(12,26-curP.tier*2);const near=bt.units.filter(o=>o.alive&&o.team===1&&o.d.spd&&dist(o.x,o.y,u.x,u.y)<160).length;if(near<3+curP.tier){const pool=poolFor(curP),k=pool[Math.floor(Math.random()*pool.length)],sp=spotsAround(u.x,u.y,1,18,6)[0];if(sp){const e=mkUnit(1,k,sp.x,sp.y);e.home={x:u.x,y:u.y};bt.units.push(e);burst(sp.x,sp.y,'#ff3bd4',8,40,.4)}}}}
 function hzDmg(u,a){u.hp-=a;if(u.hp<=0)killUnit(u)}
 const PSPD={small:420,cannon:240,flak:300,rocket:190,siege:140};
-function fire(u,t){const d=u.d;if(u.team===1&&!onScreen(u.x,u.y,0)&&onScreen(t.x,t.y,0))offFire++;shotLog.push(Math.round(dist(u.x,u.y,t.x,t.y)));if(shotLog.length>500)shotLog.shift();u.cd=d.cd*(.9+Math.random()*.2);const p={x:u.x+Math.cos(u.a)*u.r,y:u.y+Math.sin(u.a)*u.r,t,kind:d.dt,dmg:d.dmg*u.dmgM,team:u.team,spd:PSPD[d.dt],src:u,tx:t.x,ty:t.y,sx:u.x,sy:u.y,air:u.air};
+function fire(u,t){const d=u.d;u.revealT=1.5;if(u.team===1&&!onScreen(u.x,u.y,0)&&onScreen(t.x,t.y,0))offFire++;shotLog.push(Math.round(dist(u.x,u.y,t.x,t.y)));if(shotLog.length>500)shotLog.shift();u.cd=d.cd*(.9+Math.random()*.2);const p={x:u.x+Math.cos(u.a)*u.r,y:u.y+Math.sin(u.a)*u.r,t,kind:d.dt,dmg:d.dmg*u.dmgM,team:u.team,spd:PSPD[d.dt],src:u,tx:t.x,ty:t.y,sx:u.x,sy:u.y,air:u.air};
  if(d.dt==='siege'){p.T=Math.max(.4,dist(u.x,u.y,t.x,t.y)/p.spd);p.age=0}bt.proj.push(p);
  if(onScreen(u.x,u.y,20))sfx({small:'shot',cannon:'cannon',flak:'flak',rocket:'missile',siege:'cannon'}[d.dt])}
 function updProj(dt){const pr=bt.proj;for(let i=pr.length-1;i>=0;i--){const p=pr[i];
- if(p.kind==='siege'){p.age+=dt;const k=Math.min(1,p.age/p.T);p.x=lerp(p.sx,p.tx,k);p.y=lerp(p.sy,p.ty,k);p.h=Math.sin(Math.PI*k)*Math.min(60,p.T*45);if(k>=1){for(const o of bt.units){if(!o.alive||o.team===p.team||o.air)continue;const dd=dist(o.x,o.y,p.tx,p.ty);if(dd<o.r+16)dmgUnit(o,p.dmg*(dd<o.r+5?1:.5)*MULT.siege[o.d.arm],p.src)}explode(p.tx,p.ty,false);pr.splice(i,1)}continue}
+ if(p.kind==='siege'){p.age+=dt;const k=Math.min(1,p.age/p.T);p.x=lerp(p.sx,p.tx,k);p.y=lerp(p.sy,p.ty,k);p.h=Math.sin(Math.PI*k)*Math.min(60,p.T*45);if(k>=1){for(const o of bt.units){if(!o.alive||o.team===p.team||o.air)continue;const dd=dist(o.x,o.y,p.tx,p.ty);if(dd<o.r+16)dmgUnit(o,p.dmg*(dd<o.r+5?1:.5)*MULT.siege[o.d.arm]*(TCOVER[tileAt(o.x,o.y)]||1),p.src)}explode(p.tx,p.ty,false);pr.splice(i,1)}continue}
  if(p.t.alive){p.tx=p.t.x;p.ty=p.t.y-(p.t.air?4:0)}
  const dx=p.tx-p.x,dy=p.ty-p.y,l=Math.hypot(dx,dy),st=p.spd*dt;
- if(l<=st+1){if(p.t.alive)dmgUnit(p.t,p.dmg*MULT[p.kind][p.t.d.arm],p.src);burst(p.tx,p.ty,p.kind==='flak'?'#e5e5e5':p.kind==='rocket'?'#ff6b35':'#ffd75e',p.kind==='small'?2:6,40,.25);if(p.kind==='cannon'||p.kind==='rocket')shake=Math.max(shake,.8);pr.splice(i,1)}
+ if(l<=st+1){if(p.t.alive)dmgUnit(p.t,p.dmg*MULT[p.kind][p.t.d.arm]*(p.t.air||!p.src||p.src.d.range<20?1:TCOVER[tileAt(p.t.x,p.t.y)]||1),p.src);burst(p.tx,p.ty,p.kind==='flak'?'#e5e5e5':p.kind==='rocket'?'#ff6b35':'#ffd75e',p.kind==='small'?2:6,40,.25);if(p.kind==='cannon'||p.kind==='rocket')shake=Math.max(shake,.8);pr.splice(i,1)}
  else{p.x+=dx/l*st;p.y+=dy/l*st;if(p.kind==='rocket'&&Math.random()<.7)parts.push({x:p.x,y:p.y,vx:0,vy:0,life:.3,max:.3,col:'#999',sz:1})}}}
 function dmgUnit(u,a,src){if(!u.alive||a<=0)return;u.hp-=a;u.flash=.08;
- if(src&&src.alive&&canHit(u,src)&&!(u.order&&u.order.type!=='amove')&&(!u.tgt||(u.tgt.d.arm==='S'&&MULT[u.d.dt][src.d.arm]>=MULT[u.d.dt].S))){u.tgt=src}
+ if(src&&src.alive&&canHit(u,src)&&(u.team===1?seenBy(u,src):visibleToPlayer(src))&&!(u.order&&u.order.type!=='amove')&&(!u.tgt||(u.tgt.d.arm==='S'&&MULT[u.d.dt][src.d.arm]>=MULT[u.d.dt].S))){u.tgt=src}
  if(u.team===1&&src&&src.alive){for(const o of bt.units)if(o.alive&&o.team===1&&!o.tgt&&o.d.spd&&canHit(o,src)&&dist(o.x,o.y,u.x,u.y)<100)o.tgt=src}
  if(u.hp<=0)killUnit(u)}
 function killUnit(u){if(!u.alive)return;u.alive=false;explode(u.x,u.y,u.k==='core'||u.d.arm==='A');
  if(u.team){bt.kills++;SV.kills++;const t=curP.tier,cr=u.k==='core'?50*t:u.d.arm==='S'?15*t:2+t;addCredits(cr,u.x,u.y);
-  if(u.k==='core'){const left=bt.units.filter(o=>o.alive&&o.k==='core').length;if(left===0)conquer();else banner('CORE DESTROYED',left+' core'+(left>1?'s':'')+' left',2.2)}}
+  if(u.k==='core'){const left=bt.units.filter(o=>o.alive&&o.k==='core').length;if(left===0)conquer();else banner('⬢ '+left+' LEFT','',1.6)}}
  else{bt.lostN[u.k]=(bt.lostN[u.k]||0)+1;
   if(!bt.units.some(o=>o.alive&&!o.team)&&!bt.won&&!bt.over){bt.over=true;setTimeout(()=>{state='dead';$('dtitle').textContent='INVASION FAILED';$('dtxt').innerHTML='Your whole army on '+curP.name+' was destroyed.<br>Pick a different composition next time.<br><br>Tip: check the counters - tanks can\'t shoot air, flak shreds air.';$('dead').classList.add('on')},900)}}}
 $('bdead').onclick=()=>{$('dead').classList.remove('on');state='planet';transition('Returning to fleet...',()=>leaveBattle())};
@@ -461,7 +527,7 @@ function conquer(){const p=curP,first=!SV.conq[p.id],rw=first?p.reward:Math.roun
  for(const u of bt.units)if(u.alive&&!u.team){u.order=null;u.tgt=null}
  for(let i=0;i<5;i++)setTimeout(()=>{const c=centroid(bt?bt.units.filter(u=>u.alive&&!u.team):[]);if(c)burst(c.x+(Math.random()-.5)*80,c.y+(Math.random()-.5)*60,['#ffd75e','#7df9ff','#ff6ad5'][i%3],30,90,.9,2)},i*180);
  if(first)toast(p.name+' now pays '+p.tier*15+' CR per minute!',5000)}
-function updateBattle(dt){const us=bt.units;
+function updateBattle(dt){const us=bt.units;fogT-=dt;if(fogT<=0){fogT=.15;updVision()}
  for(const u of us)if(u.alive){u.age=(u.age||0)+dt;updUnit(u,dt)}
  // integrate + separation
  for(const u of us){if(!u.alive||!u.d.spd)continue;let px=0,py=0;for(const o of us){if(o===u||!o.alive||o.air!==u.air)continue;const dx=u.x-o.x,dy=u.y-o.y,m=u.r+o.r+1;if(Math.abs(dx)>m||Math.abs(dy)>m)continue;let d=Math.hypot(dx,dy);if(d<m){const f=(m-d)/m*(o.d.spd?40:90);if(d<.05){const a=(u.id*2.399)%TAU;px+=Math.cos(a)*f;py+=Math.sin(a)*f}else{px+=dx/d*f;py+=dy/d*f}}}
@@ -474,7 +540,7 @@ function updateBattle(dt){const us=bt.units;
  // storms & gas
  const b=curP.biome;for(const g of planet.gas){g.x+=g.vx*dt;g.y+=g.vy*dt;if(g.x<0||g.x>planet.sz)g.vx*=-1;if(g.y<0||g.y>planet.sz)g.vy*=-1}
  if(b==='storm'){const s=planet.storm;s.t-=dt;if(s.on>0){s.on-=dt;if(Math.random()<dt*1.4&&us.length){const v=us[Math.floor(Math.random()*us.length)];if(v.d.spd)bt.strikes.push({x:v.x+(Math.random()-.5)*50,y:v.y+(Math.random()-.5)*50,t:1.2})}}
-  if(s.t<=0&&s.on<=0){s.on=7;s.t=18;banner('ELECTRIC STORM','units slowed, watch for lightning',1.6)}
+  if(s.t<=0&&s.on<=0){s.on=7;s.t=18;banner('⚡ STORM','',1.4)}
   for(let i=bt.strikes.length-1;i>=0;i--){const k=bt.strikes[i];k.t-=dt;if(k.t<=0){bt.strikes.splice(i,1);beams.push({x1:k.x+(Math.random()-.5)*30,y1:k.y-140,x2:k.x,y2:k.y,t:.2});burst(k.x,k.y,'#cfe3ff',14,70,.4);shake=Math.max(shake,3);sfx('boom');for(const u of us)if(u.alive&&dist(u.x,u.y,k.x,k.y)<16&&u.d.spd)dmgUnit(u,30,null)}}}
  // camera pan
  let cx=0,cy=0;if(keys.KeyW||keys.ArrowUp)cy--;if(keys.KeyS||keys.ArrowDown)cy++;if(keys.KeyA||keys.ArrowLeft)cx--;if(keys.KeyD||keys.ArrowRight)cx++;if(cx||cy)follow=false;cam.x+=cx*200*dt;cam.y+=cy*200*dt;if(follow&&sel.length){const c=centroid(sel);cam.x=lerp(cam.x,c.x-W/2,Math.min(1,dt*3));cam.y=lerp(cam.y,c.y-H/2,Math.min(1,dt*3))}
@@ -483,11 +549,11 @@ function updateBattle(dt){const us=bt.units;
 let beams=[];
 
 // ================= SELECTION / COMMANDS =================
-function unitAt(wx,wy,team){let best=null,bd=1e9;for(const u of bt.units){if(!u.alive||(team!==undefined&&u.team!==team))continue;const yy=u.air?u.y-4:u.y,d=dist(wx,wy,u.x,yy);if(d<u.r+(touchMode?9:5)&&d<bd){bd=d;best=u}}return best}
+function unitAt(wx,wy,team){let best=null,bd=1e9;for(const u of bt.units){if(!u.alive||(team!==undefined&&u.team!==team)||(u.team&&!visibleToPlayer(u)))continue;const yy=u.air?u.y-4:u.y,d=dist(wx,wy,u.x,yy);if(d<u.r+(touchMode?9:5)&&d<bd){bd=d;best=u}}return best}
 function clickSelect(cx,cy,add){const w=toWorld(cx,cy),u=unitAt(w.x,w.y,0),now=performance.now();
  if(u){if(now-lastTap.t<350&&lastTap.u&&lastTap.u.k===u.k){sel=bt.units.filter(o=>o.alive&&!o.team&&o.k===u.k&&onScreen(o.x,o.y,0))}else if(add){sel=sel.includes(u)?sel.filter(o=>o!==u):sel.concat(u)}else sel=[u];lastTap={t:now,u};sfx('ui')}
  else if(!add){const e=unitAt(w.x,w.y,1);if(e&&sel.length&&touchMode){command(w)}else sel=[]}}
-function touchTap(cx,cy){const w=toWorld(cx,cy),u=unitAt(w.x,w.y,0);if(u){clickSelect(cx,cy,boxMode);return}if(sel.length)command(w);else toast('Tap one of your units first (or press ALL)',1500)}
+function touchTap(cx,cy){const w=toWorld(cx,cy),u=unitAt(w.x,w.y,0);if(u){clickSelect(cx,cy,boxMode);return}if(sel.length)command(w);else 0}
 function boxSelect(x1,y1,x2,y2,add){const a=toWorld(Math.min(x1,x2),Math.min(y1,y2)),b=toWorld(Math.max(x1,x2),Math.max(y1,y2));const got=bt.units.filter(u=>u.alive&&!u.team&&u.x>=a.x-u.r&&u.x<=b.x+u.r&&u.y>=a.y-u.r&&u.y<=b.y+u.r);
  sel=add?[...new Set(sel.concat(got))]:got;if(got.length)sfx('ui')}
 function selectAll(){if(!bt)return;sel=bt.units.filter(u=>u.alive&&!u.team);sfx('ui')}
@@ -496,7 +562,7 @@ function centroid(a){if(!a.length)return null;let x=0,y=0;for(const u of a){x+=u
 let marks=[];
 function command(w){if(!sel.length||!bt)return;const e=unitAt(w.x,w.y,1);
  if(e){let ok=0;for(const u of sel){if(u.d.heal){u.order={type:'move',x:e.x,y:e.y,rad:20};continue}if(canHit(u,e)){u.order={type:'attack',t:e};u.tgt=e;ok++}else{u.order={type:'amove',x:e.x,y:e.y,rad:20};u.tgt=null}}
-  marks.push({x:e.x,y:e.y,t:.6,col:'#ff4d4d'});if(!ok)toast('None of the selected units can hit a '+e.d.name+' ('+ARM[e.d.arm][0]+')',1800);sfx('ui');return}
+  marks.push({x:e.x,y:e.y,t:.6,col:'#ff4d4d'});if(!ok)toast('✕ '+ARM[e.d.arm][0],1200);sfx('ui');return}
  const n=sel.length,cols=Math.ceil(Math.sqrt(n)),sp=11,rad=6+Math.sqrt(n)*5,gs=Math.min(...sel.map(u=>u.d.spd));
  sel.slice().sort((a,b)=>a.id-b.id).forEach((u,i)=>{const cx=(i%cols-(cols-1)/2)*sp,cy=(Math.floor(i/cols)-(Math.ceil(n/cols)-1)/2)*sp;let x=w.x+cx,y=w.y+cy;if(!u.air&&blocked(x,y,u.r)){x=w.x;y=w.y}u.order={type:'amove',x,y,rad,spd:gs};if(u.tgt&&(!u.tgt.alive||dist(u.x,u.y,u.tgt.x,u.tgt.y)>u.d.range+15))u.tgt=null;u.returning=false});
  marks.push({x:w.x,y:w.y,t:.6,col:'#4ade80'});sfx('ui')}
@@ -525,11 +591,12 @@ function drawUnit(u){const x=Math.round(u.x-cam.x),y0=Math.round(u.y-cam.y),y=u.
  if(u.healT){X.strokeStyle='rgba(74,222,128,.7)';X.beginPath();X.moveTo(x,y);X.lineTo(Math.round(u.healT.x-cam.x),Math.round(u.healT.y-cam.y));X.stroke()}}
 function drawBattle(dt){const pl=planet;X.fillStyle='#000';X.fillRect(0,0,W,H);X.drawImage(pl.img,-Math.round(cam.x),-Math.round(cam.y));const B=BIOMES[curP.biome];
  if(curP.biome==='lava'||curP.biome==='toxic'){X.fillStyle=B.haz[1];for(let i=0;i<25;i++){const x=cam.x+Math.random()*W,y=cam.y+Math.random()*H;if(tileAt(x,y)===2)X.fillRect(Math.round(x-cam.x),Math.round(y-cam.y),1,1)}}
- const vis=bt.units.filter(u=>onScreen(u.x,u.y,20));
+ const vis=bt.units.filter(u=>onScreen(u.x,u.y,20)&&(u.team===0||(u.d.spd?visibleToPlayer(u):u.seenS)));
  for(const u of vis)if(!u.air)drawUnit(u);
  X.fillStyle='rgba(0,0,0,.35)';for(const u of vis)if(u.air)X.fillRect(Math.round(u.x-cam.x)-u.r+1,Math.round(u.y-cam.y)+3,u.r*2-2,2);
  for(const u of vis)if(u.air)drawUnit(u);
- for(const p of bt.proj){const x=Math.round(p.x-cam.x),y=Math.round(p.y-cam.y);if(p.kind==='siege'){X.fillStyle='rgba(0,0,0,.4)';X.fillRect(x-1,y,3,2);X.fillStyle='#ffd75e';X.fillRect(x-1,y-Math.round(p.h)-1,3,3)}else{X.fillStyle={small:'#ffe066',cannon:'#ff9f1c',flak:'#f1f5f9',rocket:'#ff3b3b'}[p.kind];const s=p.kind==='small'?1:2;X.fillRect(x-(s>>1),y-(s>>1),s,s)}}
+ for(const p of bt.proj){if(!pl.vis[tileOf(p.x,p.y)])continue;const x=Math.round(p.x-cam.x),y=Math.round(p.y-cam.y);if(p.kind==='siege'){X.fillStyle='rgba(0,0,0,.4)';X.fillRect(x-1,y,3,2);X.fillStyle='#ffd75e';X.fillRect(x-1,y-Math.round(p.h)-1,3,3)}else{X.fillStyle={small:'#ffe066',cannon:'#ff9f1c',flak:'#f1f5f9',rocket:'#ff3b3b'}[p.kind];const s=p.kind==='small'?1:2;X.fillRect(x-(s>>1),y-(s>>1),s,s)}}
+ if(fogC){X.imageSmoothingEnabled=false;X.drawImage(fogC,-Math.round(cam.x),-Math.round(cam.y),pl.sz,pl.sz)}
  drawParts(dt);
  for(const g of pl.gas){if(!onScreen(g.x,g.y,g.r))continue;X.fillStyle='rgba(150,255,80,.13)';for(let k=0;k<3;k++){X.beginPath();X.arc(Math.round(g.x-cam.x+Math.sin(time+k*2)*6),Math.round(g.y-cam.y+Math.cos(time*.8+k)*6),g.r*(.6+k*.2),0,TAU);X.fill()}}
  if(curP.biome==='storm'){for(const k of bt.strikes){X.strokeStyle=`rgba(255,255,120,${.5+.5*Math.sin(time*30)})`;X.beginPath();X.arc(Math.round(k.x-cam.x),Math.round(k.y-cam.y),16*(k.t/1.2)+4,0,TAU);X.stroke()}
@@ -538,7 +605,7 @@ function drawBattle(dt){const pl=planet;X.fillStyle='#000';X.fillRect(0,0,W,H);X
  if(curP.biome==='desert'){X.fillStyle='rgba(255,220,160,.35)';for(let i=0;i<30;i++){const x=(hash2(i,1,2)*W+time*90*(1+hash2(i,2,2)))%W,y=(hash2(i,3,2)*H+Math.sin(time+i)*5+H)%H;X.fillRect(Math.floor(x),Math.floor(y),3,1)}}
  for(let i=marks.length-1;i>=0;i--){const m=marks[i];m.t-=dt;if(m.t<=0){marks.splice(i,1);continue}const r=Math.round(3+m.t*8);X.strokeStyle=m.col;X.lineWidth=1;X.strokeRect(Math.round(m.x-cam.x)-r+.5,Math.round(m.y-cam.y)-r+.5,r*2,r*2)}
  if(drag&&drag.mode==='box'&&Math.abs(drag.x-drag.sx)+Math.abs(drag.y-drag.sy)>8){X.strokeStyle='#4ade80';X.fillStyle='rgba(74,222,128,.12)';const x=Math.min(drag.x,drag.sx)/S,y=Math.min(drag.y,drag.sy)/S,w=Math.abs(drag.x-drag.sx)/S,h=Math.abs(drag.y-drag.sy)/S;X.fillRect(x,y,w,h);X.strokeRect(Math.round(x)+.5,Math.round(y)+.5,Math.round(w),Math.round(h))}
- if(!bt.won)for(const c of bt.units)if(c.k==='core'&&!onScreen(c.x,c.y,-10))arrowTo(c.x,c.y,'#ff3bd4')}
+ if(!bt.won)for(const c of bt.units)if(c.k==='core'&&c.seenS&&!onScreen(c.x,c.y,-10))arrowTo(c.x,c.y,'#ff3bd4')}
 function drawParts(dt){for(let i=parts.length-1;i>=0;i--){const p=parts[i];p.life-=dt;if(p.life<=0){parts.splice(i,1);continue}p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=.96;p.vy*=.96;X.globalAlpha=clamp(p.life/p.max*1.5,0,1);X.fillStyle=p.col;X.fillRect(Math.round(p.x-cam.x),Math.round(p.y-cam.y),p.sz,p.sz)}X.globalAlpha=1;if(parts.length>900)parts.splice(0,parts.length-900);
  for(let i=beams.length-1;i>=0;i--){const bm=beams[i];bm.t-=dt;if(bm.t<=0){beams.splice(i,1);continue}X.strokeStyle='#e8f1ff';X.lineWidth=2;X.beginPath();X.moveTo(bm.x1-cam.x,bm.y1-cam.y);for(let k=1;k<6;k++)X.lineTo(lerp(bm.x1,bm.x2,k/6)-cam.x+(Math.random()-.5)*10,lerp(bm.y1,bm.y2,k/6)-cam.y);X.lineTo(bm.x2-cam.x,bm.y2-cam.y);X.stroke()}
  X.font='8px monospace';X.textAlign='center';for(let i=floaters.length-1;i>=0;i--){const f=floaters[i];f.t-=dt;if(f.t<=0){floaters.splice(i,1);continue}const fx=Math.round(f.x-cam.x),fy=Math.round(f.y-cam.y-(1-f.t)*16);X.fillStyle='#000';X.fillText(f.txt,fx+1,fy+1);X.fillStyle='#ffd75e';X.fillText(f.txt,fx,fy)}}
@@ -560,9 +627,9 @@ function render(dt){const sx=(Math.random()-.5)*shake,sy=(Math.random()-.5)*shak
 // minimap
 const MC=$('mini'),MX=MC.getContext('2d');
 function drawMini(){const s=120;MX.fillStyle='#070616';MX.fillRect(0,0,s,s);
- if(planet&&bt){const pl=planet,k=s/pl.sz;if(!pl.miniImg){const c=mkc(s,s),g=c.getContext('2d');g.imageSmoothingEnabled=false;g.drawImage(pl.img,0,0,s,s);pl.miniImg=c}MX.drawImage(pl.miniImg,0,0);
+ if(planet&&bt){const pl=planet,k=s/pl.sz;if(!pl.miniImg){const c=mkc(s,s),g=c.getContext('2d');g.imageSmoothingEnabled=false;g.drawImage(pl.img,0,0,s,s);pl.miniImg=c}MX.drawImage(pl.miniImg,0,0);if(fogC){MX.imageSmoothingEnabled=false;MX.drawImage(fogC,0,0,s,s)}
   MX.fillStyle='#ffd75e';MX.fillRect(Math.round(pl.pad.x*k)-2,Math.round(pl.pad.y*k)-2,4,4);
-  for(const u of bt.units){if(u.k==='core'){MX.fillStyle=Math.sin(time*8)>0?'#ff3bd4':'#fff';MX.fillRect(Math.round(u.x*k)-2,Math.round(u.y*k)-2,5,5)}else{MX.fillStyle=u.team?(u.d.spd?'#ff4d4d':'#ff9a9a'):(sel.includes(u)?'#a7f3d0':'#4cc9f0');MX.fillRect(Math.round(u.x*k),Math.round(u.y*k),u.team?1:2,u.team?1:2)}}
+  for(const u of bt.units){if(u.team&&(u.d.spd?!visibleToPlayer(u):!u.seenS))continue;if(u.k==='core'){MX.fillStyle=Math.sin(time*8)>0?'#ff3bd4':'#fff';MX.fillRect(Math.round(u.x*k)-2,Math.round(u.y*k)-2,5,5)}else{MX.fillStyle=u.team?(u.d.spd?'#ff4d4d':'#ff9a9a'):(sel.includes(u)?'#a7f3d0':'#4cc9f0');MX.fillRect(Math.round(u.x*k),Math.round(u.y*k),u.team?1:2,u.team?1:2)}}
   MX.strokeStyle='rgba(255,255,255,.5)';MX.strokeRect(Math.round(cam.x*k)+.5,Math.round(cam.y*k)+.5,Math.round(W*k),Math.round(H*k))}
  else{const k=s/(WORLD*2),o=s/2;MX.strokeStyle='#1d1a40';MX.beginPath();MX.arc(o,o,WORLD*k,0,TAU);MX.stroke();MX.fillStyle='#5ad1ff';MX.fillRect(o-1,o-1,3,3);
   for(const p of PLANETS){if(!SV.disc[p.id])continue;const x=o+p.x*k,y=o+p.y*k;MX.fillStyle=BIOMES[p.biome].planet[2];MX.beginPath();MX.arc(x,y,2.5,0,TAU);MX.fill();if(SV.conq[p.id]){MX.strokeStyle='#4cc9f0';MX.beginPath();MX.arc(x,y,4.5,0,TAU);MX.stroke()}}
@@ -573,7 +640,7 @@ addEventListener('pointerup',()=>MC._drag=false);
 function drawBigMap(){const c=$('bmc'),g=c.getContext('2d'),s=300,k=s/(WORLD*2),o=s/2;g.fillStyle='#070616';g.fillRect(0,0,s,s);g.strokeStyle='#2a2560';g.beginPath();g.arc(o,o,WORLD*k,0,TAU);g.stroke();g.drawImage(STATION,o-6,o-6,12,12);g.font='8px monospace';g.textAlign='center';
  for(const p of PLANETS){if(!SV.disc[p.id])continue;const x=o+p.x*k,y=o+p.y*k;g.drawImage(p.spr,x-7,y-7,14,14);if(SV.conq[p.id]){g.strokeStyle='#4cc9f0';g.beginPath();g.arc(x,y,9,0,TAU);g.stroke()}g.fillStyle=SV.conq[p.id]?'#4cc9f0':'#ffd75e';g.fillText(p.name+' T'+p.tier,x,y+18)}
  g.save();g.translate(o+P.x*k,o+P.y*k);g.rotate(P.a);g.fillStyle='#fff';g.beginPath();g.moveTo(6,0);g.lineTo(-4,-4);g.lineTo(-4,4);g.fill();g.restore();
- $('bmtxt').innerHTML='Discovered '+Object.keys(SV.disc).length+'/'+PLANETS.length+' &nbsp; Conquered '+Object.keys(SV.conq).length+'/'+PLANETS.length+'<br>Tap the map to set a course. Farther planets are tougher and pay more.'}
+ $('bmtxt').innerHTML='★ '+Object.keys(SV.conq).length+'/'+PLANETS.length}
 $('bmc').onclick=e=>{const r=$('bmc').getBoundingClientRect();P.tx=((e.clientX-r.left)/r.width-.5)*WORLD*2;P.ty=((e.clientY-r.top)/r.height-.5)*WORLD*2;toggleMap()};
 function toggleMap(){if(state==='map'){$('bigmap').classList.remove('on');state='space'}else if(state==='space'){state='map';drawBigMap();$('bigmap').classList.add('on')}}
 $('mbtn').onclick=toggleMap;$('bbmx').onclick=toggleMap;
@@ -581,14 +648,14 @@ $('mbtn').onclick=toggleMap;$('bbmx').onclick=toggleMap;
 // ================= HUD / PANEL =================
 function updHUD(){const inGame=['space','planet','paused','map','dead'].includes(state);$('hud').style.display=inGame?'block':'none';MC.style.display=inGame?'block':'none';$('pbtn').style.display=inGame?'block':'none';$('mbtn').style.display=inGame&&!planet?'block':'none';$('panel').style.display=inGame&&planet&&bt?'flex':'none';if(!inGame){$('prompt').style.display='none';return}
  $('cred').textContent='CR '+SV.credits;
- if(planet&&bt){const mine=bt.units.filter(u=>!u.team),cl=bt.units.filter(u=>u.k==='core').length;$('loc').textContent=curP.name+' ('+BIOMES[curP.biome].name+')';$('obj').textContent=bt.won?'CONQUERED! Launch when ready':'Cores destroyed: '+(planet.bases-cl)+'/'+planet.bases;$('army').textContent='Units: '+mine.length+(Object.keys(bt.lostN).length?' (lost '+Object.values(bt.lostN).reduce((a,b)=>a+b,0)+')':'');$('haz').textContent=curP.biome==='storm'&&planet.storm.on>0?'STORM: units slowed':BIOMES[curP.biome].hint}
- else{$('loc').textContent='Deep space - '+Object.keys(SV.conq).length+'/'+PLANETS.length+' conquered';$('army').textContent='Unlocked: '+SV.unlocked.length+'/'+UKEYS.length+' unit types';$('obj').textContent=dist(P.x,P.y,0,0)<500?'Station nearby: dock to unlock units':(touchMode?'Tap to fly':'Click to fly');$('haz').textContent=''}}
+ if(planet&&bt){const mine=bt.units.filter(u=>!u.team),cl=bt.units.filter(u=>u.k==='core').length;$('loc').textContent=curP.name;$('obj').textContent=bt.won?'★ WON':'⬢ '+(planet.bases-cl)+'/'+planet.bases;$('army').textContent='▲ '+mine.length;$('haz').textContent=curP.biome==='storm'&&planet.storm.on>0?'⚡ STORM':''}
+ else{$('loc').textContent='★ '+Object.keys(SV.conq).length+'/'+PLANETS.length;$('army').textContent='';$('obj').textContent='';$('haz').textContent=''}}
 let panelKey='';
 function updPanel(){const cnt={};for(const u of sel)cnt[u.k]=(cnt[u.k]||0)+1;const key=JSON.stringify(cnt)+bt.won+boxMode+follow;if(key===panelKey)return;panelKey=key;
- $('selinfo').innerHTML=sel.length?Object.entries(cnt).map(([k,n])=>'<span class="chip" style="border-color:'+ARM[UT[k].arm][1]+'">'+UT[k].name+' x'+n+'</span>').join(''):'<span class="dim">No units selected</span>';
+ $('selinfo').innerHTML=sel.length?Object.entries(cnt).map(([k,n])=>'<span class="chip" style="border-color:'+ARM[UT[k].arm][1]+'">'+UT[k].name+' x'+n+'</span>').join(''):'<span class="dim">—</span>';
  $('bret').textContent=bt.won?'LAUNCH':'RETREAT';$('bret').className=bt.won?'gold':'red';$('bbox').classList.toggle('on',boxMode);$('bfol').classList.toggle('on',follow)}
-$('ball').onclick=()=>{selectAll();follow=true};$('bfol').onclick=()=>{follow=!follow;panelKey=''};$('bstop').onclick=()=>stopSel();$('bbox').onclick=()=>{boxMode=!boxMode;panelKey='';toast(boxMode?'BOX mode: drag to select (tap still selects)':'PAN mode: drag to move the camera',1500)};
-$('bret').onclick=()=>{if(bt&&!bt.won&&!confirm('Retreat? Surviving units return to the fleet; no reward.'))return;retreat()};
+$('ball').onclick=()=>{selectAll();follow=true};$('bfol').onclick=()=>{follow=!follow;panelKey=''};$('bstop').onclick=()=>stopSel();$('bbox').onclick=()=>{boxMode=!boxMode;panelKey='';toast(boxMode?'BOX':'PAN',900)};
+$('bret').onclick=()=>{if(bt&&!bt.won&&!confirm('Retreat?'))return;retreat()};
 
 // ================= MENUS / SHOP =================
 function showOv(id,on){$(id).classList.toggle('on',on)}
@@ -605,21 +672,21 @@ function openShop(from){shopFrom=from;state='shop';renderShop();showOv('hangar',
 $('bhx').onclick=()=>{showOv('hangar',false);sfx('ui');if(shopFrom==='menu'){state='menu';showOv('menu',true);updMenu()}else state='space'};
 const chip=(a)=>'<span class="chip" style="border-color:'+ARM[a][1]+';color:'+ARM[a][1]+'">'+ARM[a][0]+'</span>';
 function counterInfo(d){const strong=d.dt?Object.keys(ARM).filter(a=>MULT[d.dt][a]>=1.4):[],cant=d.dt?Object.keys(ARM).filter(a=>MULT[d.dt][a]===0):[],weak=Object.keys(MULT).filter(t=>MULT[t][d.arm]>=1.4);return{strong,cant,weak}}
-function renderShop(){$('hcred').innerHTML='Credits: <span style="color:#ffd75e">'+SV.credits+'</span><br>Credits unlock unit types. Each invasion you draft an army with '+TOKENS+' deploy tokens.';
+function renderShop(){$('hcred').innerHTML='<span style="color:#ffd75e">CR '+SV.credits+'</span>';
  const box=$('ships');box.innerHTML='';
  for(const k of UKEYS){const d=UT[k],un=SV.unlocked.includes(k),c=document.createElement('div');c.className='card'+(un?'':' locked');const ci=counterInfo(d);
   const cv=mkc(d.rows[0].length+4,d.rows.length+4);cv.getContext('2d').drawImage(USPR[k],2,2);
   c.innerHTML='<div class="nm">'+d.name+'</div>';c.appendChild(cv);
   const dps=d.dt?Math.round(d.dmg/d.cd):0;
-  c.insertAdjacentHTML('beforeend','<div>'+chip(d.arm)+(d.air?' <span class="chip">FLIES</span>':'')+'</div><div class="ds">'+d.desc+'</div>'+
+  c.insertAdjacentHTML('beforeend','<div>'+chip(d.arm)+(d.air?' <span class="chip">FLIES</span>':'')+'</div>'+
    '<div class="st">HP '+d.hp+' &middot; '+(d.dt?DTN[d.dt]+' '+dps+' DPS':'HEALS '+d.heal+'/s')+'<br>RANGE '+d.range+(d.minr?' (min '+d.minr+')':'')+' &middot; SPD '+d.spd+' &middot; <span style="color:#ffd75e">'+d.tok+' TOKEN'+(d.tok>1?'S':'')+'</span></div>'+
-   (d.dt?'<div class="cv"><b class="g">STRONG VS</b> '+(ci.strong.map(chip).join(' ')||'-')+'</div>':'<div class="cv"><b class="g">SUPPORT</b> repairs ground & air</div>')+
-   '<div class="cv"><b class="r">WEAK VS</b> '+ci.weak.map(t=>'<span class="chip" title="'+DTEX[t]+'">'+DTN[t]+'</span>').join(' ')+'</div>'+
-   (ci.cant.length?'<div class="cv"><b class="r">CAN\'T HIT</b> '+ci.cant.map(chip).join(' ')+'</div>':'')+
+   (d.dt?'<div class="cv"><b class="g">▲</b> '+(ci.strong.map(chip).join(' ')||'-')+'</div>':'<div class="cv"><b class="g">✚</b> heal</div>')+
+   '<div class="cv"><b class="r">▼</b> '+ci.weak.map(t=>'<span class="chip" title="'+DTEX[t]+'">'+DTN[t]+'</span>').join(' ')+'</div>'+
+   (ci.cant.length?'<div class="cv"><b class="r">✕</b> '+ci.cant.map(chip).join(' ')+'</div>':'')+
    '');
   const b=document.createElement('button');
-  if(!un){b.textContent='Unlock '+d.unlock+' CR';b.disabled=SV.credits<d.unlock;b.onclick=()=>{if(SV.credits<d.unlock)return;SV.credits-=d.unlock;SV.unlocked.push(k);save();sfx('coin');toast(d.name+' unlocked!');renderShop()}}
-  else{b.textContent='Unlocked';b.disabled=true}
+  if(!un){b.textContent=d.unlock+' CR';b.disabled=SV.credits<d.unlock;b.onclick=()=>{if(SV.credits<d.unlock)return;SV.credits-=d.unlock;SV.unlocked.push(k);save();sfx('coin');toast('✔ '+d.name);renderShop()}}
+  else{b.textContent='✔';b.disabled=true}
   c.appendChild(b);box.appendChild(c)}}
 
 function counterTable(){const ks=Object.keys(MULT);return '<table class="ct"><tr><th>DMG \\ ARMOR</th>'+Object.keys(ARM).map(a=>'<th style="color:'+ARM[a][1]+'">'+ARM[a][0]+'</th>').join('')+'</tr>'+ks.map(t=>'<tr><th title="'+DTEX[t]+'">'+DTN[t]+'</th>'+Object.keys(ARM).map(a=>{const m=MULT[t][a];return'<td class="'+(m>=1.4?'g':m===0?'z':m<=.5?'r':'')+'">'+(m===0?'X':m+'x')+'</td>'}).join('')+'</tr>').join('')+'</table>'}
@@ -628,8 +695,8 @@ let helpFrom='menu';
 $('bhelp').onclick=()=>{helpFrom='menu';showOv('menu',false);showOv('help',true)};
 $('bhelpx').onclick=()=>{showOv('help',false);showOv(helpFrom==='shop'?'hangar':'menu',true)};
 $('bctr').onclick=()=>{helpFrom='shop';showOv('hangar',false);showOv('help',true)};
-function updMenu(){const nc=Object.keys(SV.conq).length;$('bplay').textContent=nc||Object.keys(SV.disc).length?'Continue':'Play';$('msave').innerHTML='Credits '+SV.credits+' &nbsp; Conquered '+nc+'/'+PLANETS.length+' &nbsp; Units unlocked '+SV.unlocked.length+'/'+UKEYS.length}
-$('bplay').onclick=()=>{unlockAudio();sfx('ui');showOv('menu',false);P.x=SV.px;P.y=SV.py;state='space';if(!SV.seenIntro){SV.seenIntro=1;save();banner('COMMANDER ON DECK','Fly to a planet and invade it with your army',4);setTimeout(()=>toast((touchMode?'Tap':'Click')+' anywhere to fly. Head to the planet up and to the right!',4500),1500)}};
+function updMenu(){const nc=Object.keys(SV.conq).length;$('bplay').textContent=nc||Object.keys(SV.disc).length?'Continue':'Play';$('msave').innerHTML='CR '+SV.credits+' &nbsp; ★ '+nc+'/'+PLANETS.length}
+$('bplay').onclick=()=>{unlockAudio();sfx('ui');showOv('menu',false);P.x=SV.px;P.y=SV.py;state='space';if(!SV.seenIntro){SV.seenIntro=1;save();banner('COMMANDER ON DECK','',2.5)}};
 $('bhang').onclick=()=>{sfx('ui');showOv('menu',false);openShop('menu')};
 $('breset').onclick=()=>{if(confirm('Erase all progress?')){SV=defSave();save();P.x=SV.px;P.y=SV.py;updMenu()}};
 updMenu();if(matchMedia('(pointer:coarse)').matches)setTouch();
@@ -639,15 +706,16 @@ updMenu();if(matchMedia('(pointer:coarse)').matches)setTouch();
 let dpPlanet=null,dpComp={};
 function openDeploy(p){dpPlanet=p;dpComp={};for(const k of UKEYS)if(SV.unlocked.includes(k)&&SV.comp[k])dpComp[k]=SV.comp[k];while(compTok(dpComp)>TOKENS){const k=UKEYS.slice().reverse().find(k=>dpComp[k]>0);dpComp[k]--}
  state='deploy';setPrompt(null);const B=BIOMES[p.biome],g=genPlanet(p),types=[...new Set(g.ens.map(e=>e.type).concat(poolFor(p)))];
- $('dpt').textContent='INVADE '+p.name.toUpperCase();
- $('dpinfo').innerHTML='Tier '+p.tier+' &middot; '+B.name+' &middot; '+(p.fac==='alien'?'ALIENS':'ROBOTS')+' &middot; '+g.bases+' core'+(g.bases>1?'s':'')+' &middot; reward '+(SV.conq[p.id]?Math.round(p.reward*.25/10)*10+' CR (raid)':p.reward+' CR')+'<br><span style="color:#ff9a6b">'+B.hint+'</span><br>EXPECTED ENEMIES:';
- $('dpen').innerHTML='';for(const t of types){const d=ET[t],el=document.createElement('div');el.className='en';const cv=mkc(16,16),gx=cv.getContext('2d');if(t==='core'){gx.fillStyle='#ff3bd4';gx.beginPath();gx.arc(8,8,6,0,TAU);gx.fill()}else{const sp=ESPR[d.spr];gx.drawImage(sp,Math.floor((16-sp.width)/2),Math.floor((16-sp.height)/2))}el.appendChild(cv);el.insertAdjacentHTML('beforeend','<span>'+d.name+'<br>'+chip(d.arm)+(d.dt?' <span class="chip">'+DTN[d.dt]+'</span>':'')+'</span>');$('dpen').appendChild(el)}
+ $('dpt').textContent=p.name.toUpperCase();
+ $('dpinfo').innerHTML='T'+p.tier+' &middot; '+B.name+' &middot; '+(p.fac==='alien'?'ALIEN':'ROBOT')+' &middot; ⬢'+g.bases+' &middot; <span style="color:#ffd75e">'+(SV.conq[p.id]?Math.round(p.reward*.25/10)*10:p.reward)+' CR</span>';
+ $('dpter').innerHTML='';for(const t of Object.keys(g.mix).sort((a,b)=>g.mix[b]-g.mix[a])){if(g.mix[t]<1)continue;const s=document.createElement('span');s.className='ic';s.title=TNAME[t];s.appendChild(tileIcon(+t,p.biome));$('dpter').appendChild(s)}
+ $('dpen').innerHTML='';for(const t of types){const d=ET[t],el=document.createElement('div');el.className='en';const cv=mkc(16,16),gx=cv.getContext('2d');if(t==='core'){gx.fillStyle='#ff3bd4';gx.beginPath();gx.arc(8,8,6,0,TAU);gx.fill()}else{const sp=ESPR[d.spr];gx.drawImage(sp,Math.floor((16-sp.width)/2),Math.floor((16-sp.height)/2))}el.appendChild(cv);el.title=d.name;el.insertAdjacentHTML('beforeend',chip(d.arm));$('dpen').appendChild(el)}
  renderDeploy();showOv('deploy',true)}
-function renderDeploy(){const used=compTok(dpComp),left=TOKENS-used;$('dptok').innerHTML='TOKENS LEFT: '+left+' / '+TOKENS+' &nbsp; ('+compN(dpComp)+' units)';$('dpgo').disabled=!compN(dpComp);
+function renderDeploy(){const used=compTok(dpComp),left=TOKENS-used;$('dptok').innerHTML='◆ '+left+'/'+TOKENS;$('dpgo').disabled=!compN(dpComp);
  const box=$('dprows');box.innerHTML='';
  for(const k of UKEYS){const d=UT[k],un=SV.unlocked.includes(k),ci=counterInfo(d),r=document.createElement('div');r.className='dr'+(un?'':' lk');r.dataset.k=k;
   const cv=mkc(d.rows[0].length+2,d.rows.length+2);cv.getContext('2d').drawImage(USPR[k],1,1);r.appendChild(cv);
-  r.insertAdjacentHTML('beforeend','<div class="inf"><span class="nm">'+d.name+'</span> '+chip(d.arm)+' <span style="color:#ffd75e">'+d.tok+' TOKEN'+(d.tok>1?'S':'')+'</span><br>'+(un?(d.dt?'<b class="g">STRONG</b> '+(ci.strong.map(a=>ARM[a][0]).join(', ')||'-'):'<b class="g">HEALS</b> allies')+' &middot; <b class="r">WEAK</b> '+ci.weak.map(t=>DTN[t]).join(', ')+(ci.cant.length?' &middot; <b class="r">CAN\'T HIT</b> '+ci.cant.map(a=>ARM[a][0]).join(', '):''):'LOCKED - unlock at the Command Center ('+d.unlock+' CR)')+'</div>');
+  r.title=d.name;r.insertAdjacentHTML('beforeend','<div class="inf"><span style="color:#ffd75e">◆'+d.tok+'</span> '+(un?(d.dt?'<b class="g">▲</b>'+(ci.strong.map(chip).join('')||'-'):'<b class="g">✚</b>')+' <b class="r">▼</b>'+ci.weak.map(t=>'<span class="chip">'+DTN[t]+'</span>').join('')+(ci.cant.length?' <b class="r">✕</b>'+ci.cant.map(chip).join(''):''):'🔒 '+d.unlock+' CR')+'</div>');
   const mi=document.createElement('button'),pl=document.createElement('button'),ct=document.createElement('span');mi.textContent='-';pl.textContent='+';ct.className='ct';ct.textContent=dpComp[k]||0;mi.className='dm';pl.className='dp';
   mi.disabled=!un||!dpComp[k];pl.disabled=!un||d.tok>left;
   mi.onclick=()=>{dpComp[k]=Math.max(0,(dpComp[k]||0)-1);sfx('ui');renderDeploy()};pl.onclick=()=>{if(!un||compTok(dpComp)+d.tok>TOKENS)return;dpComp[k]=(dpComp[k]||0)+1;sfx('ui');renderDeploy()};
@@ -656,6 +724,8 @@ $('dpclr').onclick=()=>{dpComp={};renderDeploy()};
 $('dpx').onclick=()=>{showOv('deploy',false);state='space'};
 $('dpgo').onclick=()=>{if(!compN(dpComp)||compTok(dpComp)>TOKENS)return;SV.comp={...dpComp};save();showOv('deploy',false);state='space';enterPlanet(dpPlanet,{...dpComp})};
 
+{const L=[[4,'×0.7 spd · hides · blocks sight · −35% ranged dmg'],[5,'×0.4 spd · +15% range · +30% sight'],[1,'Cliffs: ground blocked, air passes'],[6,'Water: ground blocked (use bridges/fords)'],[11,'Bridge/ford ×0.75'],[7,'Swamp ×0.5'],[8,'Road ×1.35'],[9,'Ruins ×0.85 · −20% dmg'],[10,'Tall grass/crystals ×0.9 · hides']];for(const [t,txt] of L){const c=tileIcon(t,'desert');c.style.cssText='width:20px;height:20px;image-rendering:pixelated';$('tlegend').appendChild(c);const d=document.createElement('div');d.textContent=(t===1||t===6?'':TNAME[t]+' ')+txt;$('tlegend').appendChild(d)}}
+for(const k in VISR)(UT[k]||ET[k]).vis=VISR[k];
 // ================= LOOP =================
 let last=performance.now(),errs=[];const TS=Math.min(8,+(new URLSearchParams(location.search).get('ts')||1));
 function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;time+=dt;
@@ -668,7 +738,7 @@ function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;time+=dt;
 requestAnimationFrame(frame);
 addEventListener('visibilitychange',()=>{if(document.hidden){save();if(state==='space'||state==='planet')pauseGame()}});
 addEventListener('beforeunload',save);
-window.G={get offFire(){return offFire},get shotLog(){return shotLog},get VR(){return VR},openDeploy,TOKENS,get state(){return state},get SV(){return SV},P,PLANETS,get bt(){return bt},get planet(){return planet},get sel(){return sel},set sel(v){sel=v},cam,get W(){return W},get H(){return H},S:()=>S,enterPlanet,retreat,command,selectAll,boxSelect,openShop,MULT,UT,ET,canHit,mkUnit,errs,blocked,field,steer,save,get trans(){return trans}};
+window.G={genPlanet,tileAt,visibleToPlayer,hiddenFrom,seenBy,speedMod,updVision,acquire,field,TNAME,get fields(){return fields},get offFire(){return offFire},get shotLog(){return shotLog},get VR(){return VR},openDeploy,TOKENS,get state(){return state},get SV(){return SV},P,PLANETS,get bt(){return bt},get planet(){return planet},get sel(){return sel},set sel(v){sel=v},cam,get W(){return W},get H(){return H},S:()=>S,enterPlanet,retreat,command,selectAll,boxSelect,openShop,MULT,UT,ET,canHit,mkUnit,errs,blocked,field,steer,save,get trans(){return trans}};
 
 </script>
 </body></html>
